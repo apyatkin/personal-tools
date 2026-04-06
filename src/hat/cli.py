@@ -50,7 +50,7 @@ def _complete_company(ctx, param, incomplete):
 
 
 @click.group()
-@click.version_option(version="2.1.0")
+@click.version_option(package_name="hatctl")
 def main():
     """Company context switcher."""
 
