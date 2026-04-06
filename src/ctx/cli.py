@@ -268,17 +268,21 @@ def repos_list(company: str):
 
 # --- Secret command ---
 
-@main.command("secret")
-@click.argument("action", type=click.Choice(["set"]))
-@click.argument("ref")
-def secret_cmd(action: str, ref: str):
+@main.group("secret")
+def secret_group():
     """Manage secrets."""
+
+
+@secret_group.command("set")
+@click.argument("ref")
+def secret_set(ref: str):
+    """Store a secret."""
     from ctx.secrets import parse_secret_ref
+    import subprocess
     backend, path = parse_secret_ref(ref)
     value = click.prompt("Enter secret value", hide_input=True)
 
     if backend == "keychain":
-        import subprocess
         subprocess.run(
             ["security", "add-generic-password", "-s", path, "-a", path,
              "-w", value, "-U"],
@@ -287,6 +291,16 @@ def secret_cmd(action: str, ref: str):
         click.echo(f"Stored in keychain: {path}")
     elif backend == "bitwarden":
         click.echo("Bitwarden secrets must be stored via the bw CLI or web vault.")
+
+
+@secret_group.command("get")
+@click.argument("ref")
+def secret_get(ref: str):
+    """Display a secret value."""
+    from ctx.secrets import SecretResolver
+    resolver = SecretResolver()
+    value = resolver._resolve_one(ref)
+    click.echo(value)
 
 
 # --- Tools command ---
