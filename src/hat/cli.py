@@ -45,6 +45,10 @@ MODULE_NAMES = frozenset({
 })
 
 
+def _complete_company(ctx, param, incomplete):
+    return [c for c in list_companies() if c.startswith(incomplete)]
+
+
 @click.group()
 @click.version_option(version="1.0.1")
 def main():
@@ -291,6 +295,47 @@ def migrate():
     actions = migrate_from_ctx()
     for action in actions:
         click.echo(action)
+
+
+@main.group("tunnel")
+def tunnel_group():
+    """Manage SSH tunnels and SOCKS proxies."""
+
+
+@tunnel_group.command("start")
+@click.argument("company", shell_complete=_complete_company)
+def tunnel_start(company: str):
+    """Start tunnels for a company."""
+    from hat.tunnel import start_tunnels
+    results = start_tunnels(company)
+    if not results:
+        click.echo("No tunnels configured. Add ssh.tunnels to company config.")
+        return
+    for r in results:
+        click.echo(f"  {r['type']} :{r['local_port']} (pid {r['pid']})")
+    # Save PIDs to state
+    sm = StateManager()
+    sm._dir.mkdir(parents=True, exist_ok=True)
+    import json
+    pids_file = sm._dir / "tunnel_pids.json"
+    pids_file.write_text(json.dumps([r["pid"] for r in results]))
+
+
+@tunnel_group.command("stop")
+def tunnel_stop():
+    """Stop all running tunnels."""
+    from hat.tunnel import stop_tunnels
+    import json
+    sm = StateManager()
+    pids_file = sm._dir / "tunnel_pids.json"
+    if not pids_file.exists():
+        click.echo("No tunnels running.")
+        return
+    pids = json.loads(pids_file.read_text())
+    results = stop_tunnels(pids)
+    pids_file.unlink()
+    for r in results:
+        click.echo(f"  pid {r['pid']}: {r['status']}")
 
 
 from hat.cli_repos import repos
