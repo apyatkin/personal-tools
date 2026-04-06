@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import atexit
 import os
 import subprocess
 import tempfile
@@ -40,6 +41,10 @@ class SSHModule(Module):
         os.close(fd)
         os.chmod(path, 0o600)
         self._temp_files.append(path)
+
+        # Register cleanup in case of crash
+        atexit.register(lambda p=path: os.unlink(p) if os.path.exists(p) else None)
+
         return path
 
     def deactivate(self) -> None:

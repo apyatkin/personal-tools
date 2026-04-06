@@ -29,15 +29,26 @@ class Orchestrator:
         self._sorted = sorted(modules, key=lambda m: m.order)
 
     def activate(
-        self, config: dict, secrets: dict, only_configured: bool = False
+        self, config: dict, secrets: dict, only_configured: bool = False,
+        on_activate: callable | None = None,
     ) -> list[str]:
         activated = []
         for mod in self._sorted:
             if only_configured and mod.name not in config:
                 continue
             mod_config = config.get(mod.name, {})
-            mod.activate(mod_config, secrets)
-            activated.append(mod.name)
+            if on_activate:
+                on_activate(mod.name)
+            try:
+                mod.activate(mod_config, secrets)
+                activated.append(mod.name)
+            except Exception as e:
+                # Rollback already-activated modules in reverse order
+                self.deactivate(activated)
+                raise RuntimeError(
+                    f"Module '{mod.name}' failed: {e}. "
+                    f"Rolled back: {', '.join(activated) or 'none'}"
+                ) from e
         return activated
 
     def deactivate(self, module_names: list[str]) -> list[str]:

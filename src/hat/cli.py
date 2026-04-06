@@ -3,7 +3,7 @@ from __future__ import annotations
 import click
 import yaml
 
-from hat.config import get_config_dir, load_company_config, list_companies
+from hat.config import get_config_dir, load_company_config, list_companies, validate_company_name
 from hat.modules import Orchestrator
 from hat.modules.tools import ToolsModule
 from hat.modules.vpn import VPNModule
@@ -86,10 +86,15 @@ def on_cmd(company: str, check_tools: bool):
 
     # Activate
     click.echo(f"Activating {company}...")
-    orch = _build_orchestrator()
-    activated = orch.activate(
-        config=module_config, secrets=secrets, only_configured=True
-    )
+    try:
+        orch = _build_orchestrator()
+        activated = orch.activate(
+            config=module_config, secrets=secrets, only_configured=True,
+            on_activate=lambda name: click.echo(f"  {name}..."),
+        )
+    except RuntimeError as e:
+        click.echo(click.style(f"Activation failed: {e}", fg="red"))
+        return
 
     sm.set_active(company, activated)
     sm.save()
@@ -153,6 +158,7 @@ def list_cmd(tag: str | None):
 @click.argument("company", shell_complete=_complete_company)
 def init(company: str):
     """Scaffold a new company config."""
+    validate_company_name(company)
     config_dir = get_config_dir() / "companies" / company
     config_file = config_dir / "config.yaml"
     if config_file.exists():
@@ -204,6 +210,8 @@ def run_cmd(company: str, command: tuple[str, ...]):
         return
 
     env = {**os.environ, **build_company_env(company)}
+    from hat.activity_log import log_event
+    log_event("run", company, list(command))
     result = subprocess.run(list(command), env=env)
     raise SystemExit(result.returncode)
 
@@ -293,6 +301,8 @@ def ssh_cmd(company: str, host: str, user: str | None):
         cmd.extend(["-l", user])
     cmd.append(target)
 
+    from hat.activity_log import log_event
+    log_event("ssh", company, [host])
     os.execvp("ssh", cmd)
 
 

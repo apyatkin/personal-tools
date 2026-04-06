@@ -78,3 +78,26 @@ def test_orchestrator_status():
     statuses = orch.status()
     assert statuses["a"].active is True
     assert statuses["b"].active is True
+
+
+def test_orchestrator_rollback_on_failure():
+    class FailingModule(Module):
+        name = "fail"
+        order = 2
+        def activate(self, config, secrets):
+            raise ValueError("boom")
+        def deactivate(self):
+            pass
+        def status(self):
+            return ModuleStatus(active=False)
+
+    import pytest
+    a = FakeModuleA()
+    fail = FailingModule()
+    orch = Orchestrator([a, fail])
+
+    with pytest.raises(RuntimeError, match="Module 'fail' failed"):
+        orch.activate(config={}, secrets={})
+
+    # Module A should have been deactivated (rolled back)
+    assert a.deactivated
