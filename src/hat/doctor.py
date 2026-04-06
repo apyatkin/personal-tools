@@ -54,6 +54,54 @@ def _check_company(name: str) -> list[CheckResult]:
     return results
 
 
+def fix_issues() -> list[str]:
+    """Auto-fix common issues."""
+    from pathlib import Path
+    import os
+    fixed = []
+
+    # Fix directory structure
+    projects = Path.home() / "projects"
+    if not projects.exists():
+        projects.mkdir(parents=True)
+        fixed.append("Created ~/projects/")
+    common = projects / "common"
+    if not common.exists():
+        common.mkdir()
+        fixed.append("Created ~/projects/common/")
+
+    # Fix file permissions
+    from hat.config import get_config_dir
+    config_dir = get_config_dir()
+    for name in ["state.json", "state.env", "secrets.json", "active"]:
+        path = config_dir / name
+        if path.exists():
+            mode = oct(path.stat().st_mode)[-3:]
+            if mode != "600":
+                os.chmod(path, 0o600)
+                fixed.append(f"Fixed permissions on {name}")
+
+    # Install missing tools
+    tools = load_common_tools()
+    if tools:
+        import shutil
+        from hat.modules.tools import _brew_bin_name, _npm_bin_name
+        missing = []
+        for tool in tools.get("brew", []):
+            if not shutil.which(_brew_bin_name(tool)):
+                missing.append(f"{tool} (brew)")
+        for tool in tools.get("pipx", []):
+            if not shutil.which(tool):
+                missing.append(f"{tool} (pipx)")
+        for tool in tools.get("npm", []):
+            if not shutil.which(_npm_bin_name(tool)):
+                missing.append(f"{tool} (npm)")
+        if missing:
+            fixed.append(f"Missing tools: {', '.join(missing)} — run 'hat tools install'")
+
+    return fixed
+
+
 def _check_tools() -> list[CheckResult]:
     results = []
     tools = load_common_tools()

@@ -291,7 +291,8 @@ def shell_cmd(company: str):
 
 @main.command()
 @click.argument("company", required=False)
-def doctor(company: str | None):
+@click.option("--fix", is_flag=True, help="Auto-fix common issues")
+def doctor(company: str | None, fix: bool):
     """Health check — validate configs, secrets, tools."""
     from hat.doctor import run_checks
     results = run_checks(company)
@@ -308,6 +309,16 @@ def doctor(company: str | None):
         click.echo(f"\n{len(errors)} error(s) found.")
     else:
         click.echo("\nAll checks passed.")
+
+    if fix:
+        from hat.doctor import fix_issues
+        fixes = fix_issues()
+        if fixes:
+            click.echo("\nFixes applied:")
+            for f in fixes:
+                click.echo(f"  {f}")
+        else:
+            click.echo("\nNothing to fix.")
 
 
 @main.command()
