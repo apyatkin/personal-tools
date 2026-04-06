@@ -136,9 +136,10 @@ def status():
 
 
 @main.command("list")
-def list_cmd():
+@click.option("--tag", default=None, help="Filter by tag")
+def list_cmd(tag: str | None):
     """List configured companies."""
-    companies = list_companies()
+    companies = list_companies(tag=tag)
     if not companies:
         click.echo("No companies configured. Use 'hat init <name>' to create one.")
         return
@@ -304,6 +305,53 @@ def migrate():
     actions = migrate_from_ctx()
     for action in actions:
         click.echo(action)
+
+
+@main.command()
+@click.option("-o", "--output", "output_dir", type=click.Path(), default=None, help="Output directory")
+def backup(output_dir: str | None):
+    """Backup configs to a tarball."""
+    from hat.backup import create_backup
+    from pathlib import Path
+    path = create_backup(Path(output_dir) if output_dir else None)
+    click.echo(f"Backup created: {path}")
+
+
+@main.command()
+@click.argument("archive", type=click.Path(exists=True))
+def restore(archive: str):
+    """Restore configs from a backup tarball."""
+    from hat.backup import restore_backup
+    from pathlib import Path
+    click.confirm("This will overwrite existing configs. Continue?", abort=True)
+    actions = restore_backup(Path(archive))
+    for a in actions:
+        click.echo(a)
+
+
+@main.command()
+@click.argument("company", shell_complete=_complete_company)
+@click.option("--from", "from_company", required=True, help="Source company to copy from")
+def template(company: str, from_company: str):
+    """Create a new company config based on an existing one."""
+    from hat.config import clone_company_config
+    path = clone_company_config(from_company, company)
+    click.echo(f"Created {path} (based on {from_company})")
+    click.echo("Secrets have been cleared — add them with 'hat config add-secret'.")
+
+
+@main.group()
+def kubeconfig():
+    """Manage Kubernetes configs."""
+
+
+@kubeconfig.command("merge")
+def kubeconfig_merge():
+    """Merge all company kubeconfigs into one."""
+    from hat.kubeconfig import merge_kubeconfigs
+    path = merge_kubeconfigs()
+    click.echo(f"Merged kubeconfig: {path}")
+    click.echo(f"export KUBECONFIG={path}")
 
 
 @main.command("diff")
