@@ -318,3 +318,25 @@ def tools_check(company: str):
     from ctx.modules.tools import ToolsModule
     mod = ToolsModule()
     mod.activate(tools_config, secrets={})
+
+
+# --- Skills command ---
+
+@main.group()
+def skills():
+    """Manage Claude Code skills."""
+
+
+@skills.command("deploy")
+def skills_deploy():
+    """Deploy skills to ~/projects/.claude/skills/ as symlinks."""
+    from ctx.skills import get_skills_source, deploy_skills
+    source = get_skills_source()
+    if not source.exists():
+        click.echo(f"Skills source not found: {source}")
+        return
+    deployed = deploy_skills(source)
+    if deployed:
+        click.echo(f"Deployed {len(deployed)} skills: {', '.join(deployed)}")
+    else:
+        click.echo("All skills already deployed.")
