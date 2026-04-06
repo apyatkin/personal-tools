@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from hat.config import get_config_dir
@@ -19,13 +20,16 @@ def register(ref: str) -> None:
         path = _registry_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(entries, indent=2) + "\n")
+        os.chmod(path, 0o600)
 
 
 def unregister(ref: str) -> None:
     entries = load()
     if ref in entries:
         entries.remove(ref)
-        _registry_path().write_text(json.dumps(entries, indent=2) + "\n")
+        path = _registry_path()
+        path.write_text(json.dumps(entries, indent=2) + "\n")
+        os.chmod(path, 0o600)
 
 
 def load() -> list[str]:

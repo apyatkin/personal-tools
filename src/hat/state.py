@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -42,11 +43,13 @@ class StateManager:
             "activated_at": self.activated_at,
         }
         self._state_file.write_text(json.dumps(data, indent=2) + "\n")
+        os.chmod(self._state_file, 0o600)
 
     def write_env(self, env_vars: dict[str, str]):
         self._dir.mkdir(parents=True, exist_ok=True)
         lines = [f'export {k}="{v}"' for k, v in sorted(env_vars.items())]
         self._env_file.write_text("\n".join(lines) + "\n")
+        os.chmod(self._env_file, 0o600)
 
     def merge_env(self, env_vars: dict[str, str]):
         existing = self.read_env()
