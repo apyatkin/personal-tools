@@ -1,4 +1,5 @@
 import yaml
+from unittest.mock import patch
 from click.testing import CliRunner
 
 from hat.cli import main
@@ -44,20 +45,31 @@ def test_config_set_cli(tmp_path, monkeypatch):
 def test_config_add_ssh_cli(tmp_path, monkeypatch):
     monkeypatch.setenv("HAT_CONFIG_DIR", str(tmp_path))
     _setup_company(tmp_path)
+    # Create a fake key file
+    key_file = tmp_path / "test_key"
+    key_file.write_text("fake-ssh-key")
     runner = CliRunner()
-    result = runner.invoke(main, ["config", "add-ssh", "acme", "~/.ssh/acme_ed25519"])
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value.returncode = 0
+        result = runner.invoke(main, ["config", "add-ssh", "acme", "acme-sshkey", "-f", str(key_file)])
     assert result.exit_code == 0
 
     config = yaml.safe_load((tmp_path / "companies" / "acme" / "config.yaml").read_text())
-    assert "~/.ssh/acme_ed25519" in config["ssh"]["keys"]
+    assert "keychain:acme-sshkey" in config["ssh"]["keys"]
 
 
 def test_config_add_ssh_appends(tmp_path, monkeypatch):
     monkeypatch.setenv("HAT_CONFIG_DIR", str(tmp_path))
     _setup_company(tmp_path)
+    key1 = tmp_path / "key1"
+    key1.write_text("fake-key-1")
+    key2 = tmp_path / "key2"
+    key2.write_text("fake-key-2")
     runner = CliRunner()
-    runner.invoke(main, ["config", "add-ssh", "acme", "~/.ssh/key1"])
-    runner.invoke(main, ["config", "add-ssh", "acme", "~/.ssh/key2"])
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value.returncode = 0
+        runner.invoke(main, ["config", "add-ssh", "acme", "key1", "-f", str(key1)])
+        runner.invoke(main, ["config", "add-ssh", "acme", "key2", "-f", str(key2)])
 
     config = yaml.safe_load((tmp_path / "companies" / "acme" / "config.yaml").read_text())
-    assert config["ssh"]["keys"] == ["~/.ssh/key1", "~/.ssh/key2"]
+    assert config["ssh"]["keys"] == ["keychain:key1", "keychain:key2"]
