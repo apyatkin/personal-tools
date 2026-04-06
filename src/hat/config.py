@@ -48,12 +48,43 @@ def set_nested(config: dict, path: str, value: Any) -> None:
         obj[last] = value
 
 
-def list_companies() -> list[str]:
+def list_companies(tag: str | None = None) -> list[str]:
     companies_dir = get_config_dir() / "companies"
     if not companies_dir.exists():
         return []
-    return sorted(
+    names = sorted(
         d.name
         for d in companies_dir.iterdir()
         if d.is_dir() and (d / "config.yaml").exists()
     )
+    if tag is None:
+        return names
+    result = []
+    for name in names:
+        config = load_company_config(name)
+        if tag in config.get("tags", []):
+            result.append(name)
+    return result
+
+
+def _clear_refs(obj: Any) -> None:
+    if isinstance(obj, dict):
+        for key in list(obj.keys()):
+            if key.endswith("_ref"):
+                obj[key] = ""
+            else:
+                _clear_refs(obj[key])
+    elif isinstance(obj, list):
+        for item in obj:
+            _clear_refs(item)
+
+
+def clone_company_config(source: str, target: str) -> Path:
+    config = load_company_config(source)
+    config["name"] = target
+    # Clear secrets
+    _clear_refs(config)
+    if "ssh" in config:
+        config["ssh"]["keys"] = []
+    save_company_config(target, config)
+    return get_config_dir() / "companies" / target / "config.yaml"
