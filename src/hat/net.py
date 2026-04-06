@@ -60,6 +60,8 @@ def domain_info(domain: str) -> dict:
 
 def cert_info(host: str, port: int = 443) -> dict:
     """Get SSL certificate info."""
+    chain_error = None
+
     ctx = ssl.create_default_context()
     try:
         with ctx.wrap_socket(socket.socket(), server_hostname=host) as s:
@@ -68,18 +70,59 @@ def cert_info(host: str, port: int = 443) -> dict:
             cert = s.getpeercert()
             der = s.getpeercert(binary_form=True)
     except ssl.SSLCertVerificationError as e:
-        # Try without verification to still get cert details
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        with ctx.wrap_socket(socket.socket(), server_hostname=host) as s:
+        chain_error = str(e)
+        # Retry without verification — getpeercert() returns {} with CERT_NONE
+        # so use openssl to parse the cert instead
+        ctx2 = ssl.create_default_context()
+        ctx2.check_hostname = False
+        ctx2.verify_mode = ssl.CERT_NONE
+        with ctx2.wrap_socket(socket.socket(), server_hostname=host) as s:
             s.settimeout(10)
             s.connect((host, port))
-            cert = s.getpeercert()
             der = s.getpeercert(binary_form=True)
-        return _parse_cert(cert, der, chain_error=str(e))
+        # Parse DER cert via openssl
+        if der:
+            return _parse_der_cert(der, chain_error)
+        return {"chain_error": chain_error}
+    except Exception as e:
+        return {"error": str(e)}
 
     return _parse_cert(cert, der)
+
+
+def _parse_der_cert(der: bytes, chain_error: str | None = None) -> dict:
+    """Parse a DER certificate using openssl (for when getpeercert() returns {})."""
+    pem = ssl.DER_cert_to_PEM_cert(der)
+    result = subprocess.run(
+        ["openssl", "x509", "-text", "-noout"],
+        input=pem, capture_output=True, text=True,
+    )
+    info = {}
+    if chain_error:
+        info["chain_error"] = chain_error
+
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if line.startswith("Subject:"):
+            info["subject"] = line.split("CN=")[-1].split(",")[0].strip() if "CN=" in line else line.split(":", 1)[1].strip()
+        elif line.startswith("Issuer:"):
+            info["issuer"] = line.split("CN=")[-1].split(",")[0].strip() if "CN=" in line else line.split(":", 1)[1].strip()
+            if "O=" in line:
+                info["issuer_org"] = line.split("O=")[-1].split(",")[0].strip()
+        elif line.startswith("Not Before:"):
+            info["not_before"] = line.split(":", 1)[1].strip()
+        elif line.startswith("Not After :"):
+            not_after = line.split(":", 1)[1].strip()
+            info["not_after"] = not_after
+            try:
+                expiry = datetime.strptime(not_after.strip(), "%b %d %H:%M:%S %Y %Z")
+                info["days_until_expiry"] = (expiry - datetime.now()).days
+                info["expired"] = info["days_until_expiry"] < 0
+            except ValueError:
+                pass
+
+    info["self_signed"] = info.get("subject", "") == info.get("issuer", "")
+    return info
 
 
 def _parse_cert(cert: dict, der: bytes, chain_error: str | None = None) -> dict:
