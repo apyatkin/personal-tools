@@ -7,20 +7,26 @@ A CLI tool for switching between multiple company environments. Manages VPN, SSH
 ## Install
 
 ```bash
-# Requires Python 3.11+ and uv
+# From PyPI
+uv tool install hatctl
+
+# Or from GitHub
 uv tool install git+https://github.com/apyatkin/personal-tools.git
 ```
 
 ## Update
 
 ```bash
+uv tool install hatctl --upgrade
+
+# Or from GitHub
 uv tool install git+https://github.com/apyatkin/personal-tools.git --force
 ```
 
 ## Uninstall
 
 ```bash
-uv tool uninstall hat
+uv tool uninstall hatctl
 ```
 
 ## Shell Integration
