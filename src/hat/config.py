@@ -22,7 +22,9 @@ def get_config_dir() -> Path:
     env = os.environ.get("HAT_CONFIG_DIR")
     if env:
         return Path(env)
-    return Path.home() / "Library" / "hat"
+    from hat.platform import get_default_config_dir
+
+    return get_default_config_dir()
 
 
 def _deep_merge(base: dict, override: dict) -> dict:

@@ -11,7 +11,9 @@ def find_binary(name: str) -> str:
     path = shutil.which(name)
     if path:
         return path
-    for prefix in ["/opt/homebrew/bin", "/usr/local/bin"]:
+    from hat.platform import find_binary_paths
+
+    for prefix in find_binary_paths():
         candidate = f"{prefix}/{name}"
         if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
             return candidate
@@ -19,8 +21,8 @@ def find_binary(name: str) -> str:
 
 
 def sudo_env() -> dict[str, str]:
-    """Build environment dict with Homebrew in PATH for sudo commands."""
-    return {
-        **os.environ,
-        "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}",
-    }
+    """Build environment dict with extra binary paths in PATH for sudo commands."""
+    from hat.platform import find_binary_paths
+
+    extra = ":".join(find_binary_paths())
+    return {**os.environ, "PATH": f"{extra}:{os.environ.get('PATH', '')}"}
