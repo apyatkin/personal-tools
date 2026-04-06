@@ -26,37 +26,43 @@ def config_set(company: str, path: str, value: str):
 @click.argument("company")
 @click.argument("keychain_name")
 @click.option("--file", "-f", "file_path", type=click.Path(exists=True), help="Read key from file")
-def config_add_ssh(company: str, keychain_name: str, file_path: str | None):
+@click.option("--existing", is_flag=True, help="Key already in Keychain, just add ref to config")
+def config_add_ssh(company: str, keychain_name: str, file_path: str | None, existing: bool):
     """Store SSH key in Keychain and add ref to company config.
 
+    \b
+    Three modes:
+      hat config add-ssh acme key -f ~/.ssh/key    store from file
+      hat config add-ssh acme key                  paste key, Ctrl-D
+      hat config add-ssh acme key --existing       key already in Keychain
+
+    \b
     Examples:
-
+      hat config add-ssh 3205 3205-sshkey --existing
       hat config add-ssh acme acme-sshkey -f ~/.ssh/acme_ed25519
-
-      hat config add-ssh acme acme-sshkey
-      (paste key, Ctrl-D)
     """
-    import base64
-    import subprocess
+    if not existing:
+        import base64
+        import subprocess
 
-    if file_path:
-        value = open(file_path).read()
-    else:
-        click.echo("Paste SSH private key (Ctrl-D when done):")
-        import sys
-        value = sys.stdin.read()
+        if file_path:
+            value = open(file_path).read()
+        else:
+            click.echo("Paste SSH private key (Ctrl-D when done):")
+            import sys
+            value = sys.stdin.read()
 
-    encoded = base64.b64encode(value.encode()).decode()
-    subprocess.run(
-        ["security", "add-generic-password", "-s", keychain_name, "-a", keychain_name,
-         "-w", encoded, "-U"],
-        check=True,
-    )
+        encoded = base64.b64encode(value.encode()).decode()
+        subprocess.run(
+            ["security", "add-generic-password", "-s", keychain_name, "-a", keychain_name,
+             "-w", encoded, "-U"],
+            check=True,
+        )
+        click.echo(f"Stored in keychain: {keychain_name}")
 
     config = load_company_config(company)
     set_nested(config, "ssh.keys[+]", f"keychain:{keychain_name}")
     save_company_config(company, config)
-    click.echo(f"Stored in keychain: {keychain_name}")
     click.echo(f"{company}: added keychain:{keychain_name} to ssh.keys")
 
 
