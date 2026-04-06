@@ -7,7 +7,7 @@ def test_version():
     runner = CliRunner()
     result = runner.invoke(main, ["--version"])
     assert result.exit_code == 0
-    assert "2.0.0" in result.output
+    assert "2.1.0" in result.output
 
 
 def test_status_no_context(tmp_path, monkeypatch):

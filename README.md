@@ -1,6 +1,6 @@
 # hat — Put On Your Company Hat
 
-> Version 2.0.0
+> Version 2.1.0
 
 A CLI tool for switching between multiple company environments. Manages VPN, SSH keys, cloud credentials, env vars, DNS, git identity, docker registries, browser profiles, tool installation, and git repo cloning.
 
