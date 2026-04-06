@@ -42,10 +42,13 @@ def repos_clone(company: str, concurrency: int):
 @repos.command("pull")
 @click.argument("company", required=False)
 @click.option("--all", "pull_all", is_flag=True, help="Pull all companies")
-def repos_pull(company: str | None, pull_all: bool):
+@click.option("--tag", default=None, help="Pull companies with this tag")
+def repos_pull(company: str | None, pull_all: bool, tag: str | None):
     """Pull updates for company repos."""
     if pull_all:
         companies = list_companies()
+    elif tag:
+        companies = list_companies(tag=tag)
     elif company:
         companies = [company]
     else:
