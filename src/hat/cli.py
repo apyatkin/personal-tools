@@ -352,6 +352,30 @@ def restore(archive: str):
         click.echo(a)
 
 
+@main.command("export")
+@click.argument("company", shell_complete=_complete_company)
+@click.option("-o", "--output", "output_dir", type=click.Path(), default=None)
+def export_cmd(company: str, output_dir: str | None):
+    """Export a company config for sharing."""
+    from hat.transfer import export_company
+    from pathlib import Path
+    path = export_company(company, Path(output_dir) if output_dir else None)
+    click.echo(f"Exported to: {path}")
+    click.echo("Share this file — secrets are referenced, not included.")
+
+
+@main.command("import")
+@click.argument("archive", type=click.Path(exists=True))
+@click.option("--name", default=None, help="Override company name")
+def import_cmd(archive: str, name: str | None):
+    """Import a company config from an export."""
+    from hat.transfer import import_company
+    from pathlib import Path
+    company = import_company(Path(archive), name)
+    click.echo(f"Imported: {company}")
+    click.echo(f"Add secrets: hat secret list --company {company}")
+
+
 @main.command()
 @click.argument("company", shell_complete=_complete_company)
 @click.option("--from", "from_company", required=True, help="Source company to copy from")
@@ -575,6 +599,116 @@ def sync(company: str | None):
             pass
 
     click.echo("\nSync complete.")
+
+
+HELP_TOPICS = {
+    "ssh": """SSH Management
+
+  Configure:
+    hat ssh config <company> --default-user deploy --default-key my-key
+    hat ssh config <company> --jump deploy@bastion.acme.com
+
+  Add hosts:
+    hat ssh add <company> <name> <address> [-u USER] [-p PORT] [-k KEY]
+
+  Connect:
+    hat ssh connect <company> <host>
+
+  List & manage:
+    hat ssh list [company]
+    hat ssh remove <company> <host>
+    hat ssh generate-config [company]  # for ~/.ssh/config""",
+
+    "vpn": """VPN Management
+
+  Configure:
+    hat vpn config <company> --provider wireguard
+    hat vpn config <company> --provider tailscale
+
+  Connect/disconnect:
+    hat vpn up <company> [-y]
+    hat vpn down <company> [-y]
+
+  Status:
+    hat vpn status [company]
+
+  Supported: wireguard, amnezia, tailscale""",
+
+    "secrets": """Secret Management
+
+  Store:
+    hat secret set keychain:<name>              paste, Ctrl-D
+    hat secret set keychain:<name> -f file.pem  from file
+    hat config add-secret <company> <path> <name>
+
+  Retrieve:
+    hat secret get keychain:<name>
+
+  List & scan:
+    hat secret list [--company NAME] [--check]
+    hat secret scan
+
+  Backends: keychain:<name>, bitwarden:<item>[/password|/notes|/field/<name>]""",
+
+    "tools": """Tool Management
+
+  Setup:
+    hat tools init             generate ~/projects/common/tools.yaml
+    hat tools list             show all with install status
+    hat tools install          install/update everything
+
+  Manage:
+    hat tools add brew kubectl
+    hat tools add pipx ansible
+    hat tools add npm @bitwarden/cli
+    hat tools remove brew k9s
+
+  Package managers: brew, pipx (uv tool), npm""",
+
+    "net": """Network Tools
+
+    hat net domain example.com     WHOIS + RDAP (expiry, registrar)
+    hat net cert example.com       SSL certificate (chain, self-signed, expiry)
+    hat net ip 8.8.8.8             IP geolocation, ISP
+    hat net dns example.com        A, AAAA, MX, NS, CNAME, TXT records
+    hat net check host.com         ping + traceroute + port check
+    hat net check host -p 8080     specific ports""",
+
+    "config": """Configuration
+
+  Company config: ~/Library/hat/companies/<name>/config.yaml
+  Common tools:   ~/projects/common/tools.yaml
+  Global config:  ~/Library/hat/config.yaml
+
+  Commands:
+    hat init <company>                     create company
+    hat config set <company> <path> <val>  set any field
+    hat config add-ssh <company> <name>    add SSH key
+    hat config add-secret <company> ...    add secret ref
+    hat config validate <company>          check config
+    hat template <company> --from <other>  clone config""",
+}
+
+
+@main.command("help")
+@click.argument("topic", required=False)
+def help_cmd(topic: str | None):
+    """Show help for a topic.
+
+    \b
+    Topics: ssh, vpn, secrets, tools, net, config
+    """
+    if not topic:
+        click.echo("Available topics:")
+        for t in sorted(HELP_TOPICS):
+            click.echo(f"  hat help {t}")
+        return
+    text = HELP_TOPICS.get(topic)
+    if not text:
+        click.echo(f"Unknown topic: {topic}")
+        click.echo(f"Available: {', '.join(sorted(HELP_TOPICS))}")
+        return
+    click.echo(text)
 
 
 from hat.cli_repos import repos
