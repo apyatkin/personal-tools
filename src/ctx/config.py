@@ -12,7 +12,7 @@ def get_config_dir() -> Path:
     env = os.environ.get("CTX_CONFIG_DIR")
     if env:
         return Path(env)
-    return Path.home() / ".config" / "ctx"
+    return Path.home() / "Library" / "ctx"
 
 
 def load_company_config(name: str) -> dict[str, Any]:

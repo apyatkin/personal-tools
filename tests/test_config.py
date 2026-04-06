@@ -14,7 +14,7 @@ def test_get_config_dir(tmp_path, monkeypatch):
 def test_get_config_dir_default(monkeypatch):
     monkeypatch.delenv("CTX_CONFIG_DIR", raising=False)
     result = get_config_dir()
-    assert str(result).endswith(".config/ctx")
+    assert str(result).endswith("Library/ctx")
 
 
 def test_load_company_config(tmp_path, monkeypatch):
