@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import subprocess
-
 import yaml
 
 from hat.config import get_config_dir
@@ -18,13 +16,6 @@ def is_enabled() -> bool:
 def send_notification(title: str, message: str):
     if not is_enabled():
         return
-    # Escape backslashes and quotes for AppleScript
-    safe_title = title.replace("\\", "\\\\").replace('"', '\\"')
-    safe_message = message.replace("\\", "\\\\").replace('"', '\\"')
-    subprocess.Popen(
-        [
-            "osascript",
-            "-e",
-            f'display notification "{safe_message}" with title "{safe_title}"',
-        ]
-    )
+    from hat.platform import send_notification as _send
+
+    _send(title, message)

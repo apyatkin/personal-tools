@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import subprocess
-
 from hat.modules import Module, ModuleStatus
 
 
@@ -18,7 +16,9 @@ class AppsModule(Module):
 
         if "slack" in config:
             workspace = config["slack"]["workspace"]
-            subprocess.Popen(["open", f"slack://channel?team={workspace}"])
+            from hat.platform import open_url
+
+            open_url(f"slack://channel?team={workspace}")
             self._launched.append(f"slack:{workspace}")
 
     def deactivate(self) -> None:

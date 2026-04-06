@@ -1,14 +1,6 @@
 from __future__ import annotations
 
-import subprocess
-
 from hat.modules import Module, ModuleStatus
-
-APP_MAP = {
-    "google-chrome": "Google Chrome",
-    "firefox": "Firefox",
-    "arc": "Arc",
-}
 
 
 class BrowserModule(Module):
@@ -27,10 +19,9 @@ class BrowserModule(Module):
 
         self._profile = profile
         self._app = app
-        app_name = APP_MAP.get(app, app)
-        subprocess.Popen(
-            ["open", "-a", app_name, "--args", f"--profile-directory={profile}"],
-        )
+        from hat.platform import open_browser_with_profile
+
+        open_browser_with_profile(app, profile)
 
     def deactivate(self) -> None:
         self._profile = None

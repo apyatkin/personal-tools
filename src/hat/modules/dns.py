@@ -1,12 +1,8 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import click
 
 from hat.modules import Module, ModuleStatus
-
-RESOLVER_DIR = Path("/etc/resolver")
 
 
 class DNSModule(Module):
@@ -17,30 +13,29 @@ class DNSModule(Module):
         self._domains: list[str] = []
 
     def activate(self, config: dict, secrets: dict) -> None:
+        from hat.platform import configure_dns, get_resolver_dir
+
         resolvers = config.get("resolvers", [])
         domains = config.get("search_domains", [])
         if not resolvers or not domains:
             return
 
         self._domains = domains
-        content = "\n".join(f"nameserver {r}" for r in resolvers) + "\n"
+        resolver_dir = get_resolver_dir()
+        location = str(resolver_dir) if resolver_dir else "system DNS"
 
         click.confirm(
-            f"Will create resolver files in {RESOLVER_DIR} for: {', '.join(domains)}\nProceed?",
+            f"Will configure DNS in {location} for: {', '.join(domains)}\nProceed?",
             default=True,
             abort=True,
         )
 
-        RESOLVER_DIR.mkdir(parents=True, exist_ok=True)
-        for domain in domains:
-            resolver_file = RESOLVER_DIR / domain
-            resolver_file.write_text(content)
+        configure_dns(resolvers, domains)
 
     def deactivate(self) -> None:
-        for domain in self._domains:
-            resolver_file = RESOLVER_DIR / domain
-            if resolver_file.exists():
-                resolver_file.unlink()
+        from hat.platform import unconfigure_dns
+
+        unconfigure_dns(self._domains)
         self._domains = []
 
     def status(self) -> ModuleStatus:
