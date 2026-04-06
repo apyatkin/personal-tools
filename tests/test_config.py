@@ -13,7 +13,7 @@ def test_get_config_dir(tmp_path, monkeypatch):
 def test_get_config_dir_default(monkeypatch):
     monkeypatch.delenv("HAT_CONFIG_DIR", raising=False)
     result = get_config_dir()
-    assert str(result).endswith("Library/hat")
+    assert str(result).endswith("/hat")
 
 
 def test_load_company_config(tmp_path, monkeypatch):

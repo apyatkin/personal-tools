@@ -49,12 +49,10 @@ def test_config_set_cli(tmp_path, monkeypatch):
 def test_config_add_ssh_cli(tmp_path, monkeypatch):
     monkeypatch.setenv("HAT_CONFIG_DIR", str(tmp_path))
     _setup_company(tmp_path)
-    # Create a fake key file
     key_file = tmp_path / "test_key"
     key_file.write_text("fake-ssh-key")
     runner = CliRunner()
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value.returncode = 0
+    with patch("hat.platform.store_secret", return_value=True):
         result = runner.invoke(
             main, ["config", "add-ssh", "acme", "acme-sshkey", "-f", str(key_file)]
         )
@@ -74,8 +72,7 @@ def test_config_add_ssh_appends(tmp_path, monkeypatch):
     key2 = tmp_path / "key2"
     key2.write_text("fake-key-2")
     runner = CliRunner()
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value.returncode = 0
+    with patch("hat.platform.store_secret", return_value=True):
         runner.invoke(main, ["config", "add-ssh", "acme", "key1", "-f", str(key1)])
         runner.invoke(main, ["config", "add-ssh", "acme", "key2", "-f", str(key2)])
 

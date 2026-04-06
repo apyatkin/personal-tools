@@ -8,9 +8,9 @@ def test_apps_activate_slack():
     config = {"slack": {"workspace": "acme-corp"}}
     with patch("hat.platform.subprocess.Popen") as mock_popen:
         mod.activate(config, secrets={})
-    mock_popen.assert_called_once_with(
-        ["open", "slack://channel?team=acme-corp"],
-    )
+    mock_popen.assert_called_once()
+    cmd = mock_popen.call_args.args[0]
+    assert "slack://channel?team=acme-corp" in " ".join(cmd)
     assert mod.status().active
 
 

@@ -8,9 +8,9 @@ def test_browser_activate():
     config = {"profile": "Acme", "app": "google-chrome"}
     with patch("hat.platform.subprocess.Popen") as mock_popen:
         mod.activate(config, secrets={})
-    mock_popen.assert_called_once_with(
-        ["open", "-a", "Google Chrome", "--args", "--profile-directory=Acme"],
-    )
+    mock_popen.assert_called_once()
+    cmd = mock_popen.call_args.args[0]
+    assert "--profile-directory=Acme" in cmd
     assert mod.status().active
 
 
