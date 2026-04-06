@@ -81,6 +81,14 @@ def vpn_config(company: str, provider: str | None, config_path: str | None, inte
 
     if changed:
         save_company_config(company, config)
+        # Secure VPN config file permissions
+        conf_path = vpn.get("config")
+        if conf_path:
+            import os
+            from pathlib import Path
+            p = Path(conf_path).expanduser()
+            if p.exists():
+                os.chmod(p, 0o600)
         click.echo(f"{company}: VPN config updated.")
 
     click.echo(f"\n  VPN config for {company}:")
@@ -146,12 +154,14 @@ def vpn_up(company: str, yes: bool):
 
 @vpn_group.command("down")
 @click.argument("company", shell_complete=_complete_company)
-def vpn_down(company: str):
+@click.option("-y", "--yes", is_flag=True, help="Skip confirmation")
+def vpn_down(company: str, yes: bool):
     """Disconnect VPN for a company.
 
     \b
-    Example:
+    Examples:
       hat vpn down 3205
+      hat vpn down 3205 -y
     """
     import subprocess
 
