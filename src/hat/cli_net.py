@@ -126,3 +126,44 @@ def net_check_cmd(host: str, ports: tuple[int, ...]):
     click.echo(f"\nTraceroute:")
     for line in info.get("traceroute", []):
         click.echo(f"  {line}")
+
+
+@net_group.command("monitor")
+@click.option("--domain", "-d", "domains", multiple=True, help="Domain to check (repeatable)")
+@click.option("--host", "-h", "hosts", multiple=True, help="Host for cert check (repeatable)")
+def net_monitor(domains: tuple[str, ...], hosts: tuple[str, ...]):
+    """Check domain expiry and SSL certificates.
+
+    \b
+    Examples:
+      hat net monitor -d example.com -d example.org
+      hat net monitor -h api.example.com -h www.example.com
+      hat net monitor -d example.com -h example.com
+    """
+    from hat.monitor import check_all_domains, check_all_certs
+
+    if not domains and not hosts:
+        click.echo("Specify domains (-d) and/or hosts (-h) to check.")
+        return
+
+    alerts = []
+    if domains:
+        click.echo("Checking domains...")
+        alerts.extend(check_all_domains({"check": list(domains)}))
+    if hosts:
+        click.echo("Checking certificates...")
+        alerts.extend(check_all_certs({"check": list(hosts)}))
+
+    if not alerts:
+        click.echo(click.style("\nAll OK — no expiry warnings.", fg="green"))
+        return
+
+    click.echo(f"\n{len(alerts)} alert(s):")
+    for a in sorted(alerts, key=lambda x: x.days_left or 999):
+        if a.days_left is not None and a.days_left < 30:
+            color = "red"
+        elif a.days_left is not None and a.days_left < 90:
+            color = "yellow"
+        else:
+            color = "white"
+        click.echo(click.style(f"  [{a.type}] {a.message}", fg=color))
