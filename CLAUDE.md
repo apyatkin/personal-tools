@@ -20,8 +20,10 @@ uv run pytest tests/test_foo.py -v # run single test file
 - `src/ctx/cli.py` — Click command definitions, wires everything together
 - `src/ctx/config.py` — YAML config loading from `~/Library/ctx/companies/<name>/config.yaml`
 - `src/ctx/state.py` — State management (`state.json` + `state.env`)
-- `src/ctx/secrets.py` — Secret resolution from macOS Keychain and Bitwarden
-- `src/ctx/shell.py` — Shell integration code generation for zsh
+- `src/ctx/secrets.py` — Secret resolution from macOS Keychain and Bitwarden (base64-encoded in Keychain)
+- `src/ctx/shell.py` — Shell integration code generation for zsh (sources aliases + completions)
+- `src/ctx/common.py` — Global shared config: aliases, completions, tools (`~/projects/common/`)
+- `src/ctx/skills.py` — Claude Code skill deployment (`~/projects/.claude/skills/`)
 - `src/ctx/repos.py` — Git repo cloning/pulling via GitLab/GitHub APIs
 - `src/ctx/modules/` — Each module has `activate()`, `deactivate()`, `status()` methods:
   - Activation order: tools(0) → vpn(2) → dns(3) → hosts(4) → ssh(5) → git(6) → cloud(7) → env(8) → docker(9) → proxy(10) → browser(11) → apps(12)
@@ -29,9 +31,13 @@ uv run pytest tests/test_foo.py -v # run single test file
 
 ## Key Design Decisions
 
+- Config at `~/Library/ctx/` (macOS standard), override with `CTX_CONFIG_DIR`
 - Hard switch only — one active company at a time
-- All config sections are optional
+- All company config sections are optional
+- Tools defined globally in `~/projects/common/tools.yaml` (not per-company)
 - Secrets referenced via `*_ref` fields using `keychain:<name>` or `bitwarden:<path>` syntax
+- Keychain secrets are base64-encoded to support multiline values (SSH keys, certs)
 - Privileged operations (vpn, dns, hosts) prompt before running `sudo`
 - Tool update checks throttled to once per 24 hours
 - GitLab repos preserve nested subgroup structure
+- Shell aliases and completions in `~/projects/common/`, sourced by shell hook

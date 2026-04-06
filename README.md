@@ -172,9 +172,17 @@ Secrets are referenced in config via `*_ref` fields and resolved at activation t
 - **macOS Keychain:** `keychain:<service-name>`
 - **Bitwarden:** `bitwarden:<item>`, `bitwarden:<item>/password`, `bitwarden:<item>/field/<name>`
 
+Values are base64-encoded in Keychain to support multiline secrets (SSH keys, certs).
+
 ```bash
-# Store a secret
+# Store a secret (paste multiline, Ctrl-D to finish)
 ctx secret set keychain:acme-gitlab-token
+
+# Store from file (SSH keys, certs)
+ctx secret set keychain:acme-sshkey -f ~/.ssh/acme_ed25519
+
+# Display a secret
+ctx secret get keychain:acme-gitlab-token
 ```
 
 ## Repo Management
@@ -299,7 +307,9 @@ ctx repos pull <company>       pull updates for company repos
 ctx repos pull --all           pull all companies
 ctx repos list <company>       list local vs remote repos
 
-ctx secret set <ref>           store a secret
+ctx secret set <ref>           store a secret (multiline paste, Ctrl-D)
+ctx secret set <ref> -f <file>  store from file
+ctx secret get <ref>           display a secret
 
 ctx tools init                 generate ~/projects/common/tools.yaml
 ctx tools check                check/install tools
