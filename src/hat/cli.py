@@ -50,7 +50,7 @@ def _complete_company(ctx, param, incomplete):
 
 
 @click.group()
-@click.version_option(version="1.0.1")
+@click.version_option(version="2.0.0")
 def main():
     """Company context switcher."""
 

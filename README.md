@@ -1,6 +1,6 @@
 # hat — Put On Your Company Hat
 
-> Version 1.0.1
+> Version 2.0.0
 
 A CLI tool for switching between multiple company environments. Manages VPN, SSH keys, cloud credentials, env vars, DNS, git identity, docker registries, browser profiles, tool installation, and git repo cloning.
 
@@ -284,35 +284,70 @@ Modules activate in this order (deactivate in reverse):
 
 State is tracked in `~/Library/hat/state.json` so `hat off` and `hat status` work across shell restarts.
 
+## Network Tools
+
+```bash
+hat net domain example.com       # WHOIS/RDAP lookup
+hat net cert example.com         # SSL certificate info
+hat net ip 1.2.3.4               # IP geolocation + ISP
+hat net dns example.com          # A, AAAA, MX, NS, CNAME, TXT records
+hat net check host.com           # ping + traceroute + port check
+hat net check host.com -p 8080   # check specific ports
+```
+
 ## All Commands
 
 ```
 hat on <company>                          put on a company hat
 hat off                                   take off your hat
 hat status                                what hat am I wearing?
-hat list                                  list all hats
+hat list [--tag TAG]                      list all hats
 hat init <company>                        scaffold new company config
 
 hat config set <company> <path> <value>   set a config value
-hat config add-ssh <company> <key-path>   add SSH key to config
+hat config add-ssh <company> <name> [-f]  store SSH key + add to config
 hat config add-secret <company> <path> <name>  store secret + add ref
+hat config add-host <company> <name> <addr> [-u USER] [-k KEY]
+hat config validate <company>             validate config
+hat template <company> --from <other>     clone company config
+
+hat ssh <company> <host> [-u USER]        SSH via jump host (named or raw)
+hat tunnel start <company>                start SSH tunnels
+hat tunnel stop                           stop tunnels
 
 hat repos clone <company>                 clone all repos
-hat repos pull <company>                  pull updates
+hat repos pull <company> [--tag TAG]      pull updates
 hat repos pull --all                      pull all companies
+hat repos sync <company>                  clone + pull in one
 hat repos list <company>                  list local vs remote
 
-hat secret set <ref>                      store a secret
-hat secret set <ref> -f <file>            store from file
+hat run <company> -- <command>            run command in company env
+hat env <company> [--export]              show env vars (dry run)
+hat shell <company>                       spawn shell with company env
+hat diff <company1> <company2>            compare configs
+
+hat secret set <ref> [-f FILE]            store a secret
 hat secret get <ref>                      display a secret
+
+hat doctor [<company>]                    health check
+hat log [--company NAME] [-n LIMIT]       activity log
+hat migrate                               migrate from ~/.config/ctx/
+hat backup [-o DIR]                       backup configs
+hat restore <archive>                     restore from backup
 
 hat tools init                            generate tools.yaml
 hat tools check                           check/install tools
 
+hat net domain <domain>                   WHOIS info
+hat net cert <host>                       SSL certificate info
+hat net ip <address>                      IP geolocation
+hat net dns <domain>                      DNS records
+hat net check <host> [-p PORT]            ping + traceroute + ports
+
+hat kubeconfig merge                      merge all kubeconfigs
 hat aliases generate                      generate aliases.sh
 hat completions generate                  generate completions.sh
-
+hat completion zsh                        shell completion code
 hat skills deploy                         deploy Claude Code skills
-
-hat shell-init zsh                        output shell integration code
+hat shell-init zsh                        output shell integration
 ```
