@@ -87,7 +87,6 @@ def secret_set(ref: str, file_path: str | None):
     from hat.secrets import parse_secret_ref
     from hat.secret_registry import register
     import base64
-    import subprocess
 
     backend, path = parse_secret_ref(ref)
 
@@ -101,22 +100,13 @@ def secret_set(ref: str, file_path: str | None):
 
     if backend == "keychain":
         encoded = base64.b64encode(value.encode()).decode()
-        subprocess.run(
-            [
-                "security",
-                "add-generic-password",
-                "-s",
-                path,
-                "-a",
-                path,
-                "-w",
-                encoded,
-                "-U",
-            ],
-            check=True,
-        )
-        register(ref)
-        click.echo(f"Stored in keychain: {path}")
+        from hat.platform import store_secret
+
+        if store_secret(path, encoded):
+            register(ref)
+            click.echo(f"Stored: {path}")
+        else:
+            click.echo(f"Failed to store: {path}")
     elif backend == "bitwarden":
         click.echo("Bitwarden secrets must be stored via the bw CLI or web vault.")
 
@@ -230,20 +220,16 @@ def secret_delete(ref: str):
     """
     from hat.secrets import parse_secret_ref
     from hat.secret_registry import unregister
-    import subprocess
 
     backend, path = parse_secret_ref(ref)
 
     if backend == "keychain":
-        result = subprocess.run(
-            ["security", "delete-generic-password", "-s", path],
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode == 0:
-            click.echo(f"Deleted from keychain: {path}")
+        from hat.platform import delete_secret
+
+        if delete_secret(path):
+            click.echo(f"Deleted from credential store: {path}")
         else:
-            click.echo(f"Not found in keychain: {path}")
+            click.echo(f"Not found in credential store: {path}")
     elif backend == "bitwarden":
         click.echo("Delete Bitwarden secrets via the bw CLI or web vault.")
 

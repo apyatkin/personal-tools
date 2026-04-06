@@ -50,7 +50,6 @@ def config_add_ssh(
     """
     if not existing:
         import base64
-        import subprocess
 
         if file_path:
             value = Path(file_path).read_text()
@@ -61,21 +60,12 @@ def config_add_ssh(
             value = sys.stdin.read()
 
         encoded = base64.b64encode(value.encode()).decode()
-        subprocess.run(
-            [
-                "security",
-                "add-generic-password",
-                "-s",
-                keychain_name,
-                "-a",
-                keychain_name,
-                "-w",
-                encoded,
-                "-U",
-            ],
-            check=True,
-        )
-        click.echo(f"Stored in keychain: {keychain_name}")
+        from hat.platform import store_secret
+
+        if store_secret(keychain_name, encoded):
+            click.echo(f"Stored: {keychain_name}")
+        else:
+            click.echo(f"Failed to store: {keychain_name}")
 
     from hat.secret_registry import register
 
@@ -110,7 +100,6 @@ def config_add_secret(
       hat config add-secret acme git.identity.ssh_key acme-sshkey -f ~/.ssh/key
     """
     import base64
-    import subprocess
 
     if file_path:
         value = Path(file_path).read_text()
@@ -121,20 +110,9 @@ def config_add_secret(
         value = sys.stdin.read()
 
     encoded = base64.b64encode(value.encode()).decode()
-    subprocess.run(
-        [
-            "security",
-            "add-generic-password",
-            "-s",
-            keychain_name,
-            "-a",
-            keychain_name,
-            "-w",
-            encoded,
-            "-U",
-        ],
-        check=True,
-    )
+    from hat.platform import store_secret
+
+    store_secret(keychain_name, encoded)
 
     from hat.secret_registry import register
 

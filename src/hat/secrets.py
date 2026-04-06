@@ -53,16 +53,13 @@ class SecretResolver:
     def _resolve_keychain(self, service: str) -> str:
         import base64
 
-        result = subprocess.run(
-            ["security", "find-generic-password", "-s", service, "-w"],
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode != 0:
+        from hat.platform import get_secret
+
+        raw = get_secret(service)
+        if raw is None:
             raise RuntimeError(
-                f"Failed to read keychain secret '{service}': {result.stderr.strip()}"
+                f"Failed to read secret '{service}' from credential store"
             )
-        raw = result.stdout.strip()
         try:
             return base64.b64decode(raw).decode()
         except Exception:
