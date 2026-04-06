@@ -128,22 +128,20 @@ def off(company: str | None):
             vpn_config = config.get("vpn", {})
             provider = vpn_config.get("provider")
             if provider:
-                import os
                 import subprocess
-                env = {**os.environ, "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}"}
-                from hat.modules.vpn import _find_binary
+                from hat.utils import find_binary, sudo_env
                 if provider == "wireguard":
                     interface = vpn_config.get("interface") or vpn_config.get("config")
-                    cmd = ["sudo", _find_binary("wg-quick"), "down", interface]
+                    cmd = ["sudo", find_binary("wg-quick"), "down", interface]
                 elif provider == "amnezia":
-                    cmd = ["sudo", _find_binary("amnezia-cli"), "disconnect"]
+                    cmd = ["sudo", find_binary("amnezia-cli"), "disconnect"]
                 elif provider == "tailscale":
-                    cmd = ["sudo", _find_binary("tailscale"), "down"]
+                    cmd = ["sudo", find_binary("tailscale"), "down"]
                 else:
                     cmd = None
                 if cmd:
                     click.echo(f"  vpn down ({provider})...")
-                    subprocess.run(cmd, env=env)
+                    subprocess.run(cmd, env=sudo_env())
         except Exception as e:
             click.echo(f"  vpn disconnect warning: {e}")
 

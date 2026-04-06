@@ -1,23 +1,11 @@
 from __future__ import annotations
 
-import os
-import shutil
 import subprocess
 
 import click
 
 from hat.modules import Module, ModuleStatus
-
-
-def _find_binary(name: str) -> str:
-    path = shutil.which(name)
-    if path:
-        return path
-    for prefix in ["/opt/homebrew/bin", "/usr/local/bin"]:
-        candidate = f"{prefix}/{name}"
-        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
-            return candidate
-    return name
+from hat.utils import find_binary, sudo_env
 
 
 class VPNModule(Module):
@@ -30,16 +18,15 @@ class VPNModule(Module):
         self._interface: str | None = None
 
     def _is_already_connected(self) -> bool:
-        env = {**os.environ, "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}"}
         if self._provider == "wireguard":
             result = subprocess.run(
-                ["sudo", _find_binary("wg"), "show"],
-                capture_output=True, text=True, env=env,
+                ["sudo", find_binary("wg"), "show"],
+                capture_output=True, text=True, env=sudo_env(),
             )
             return result.returncode == 0 and len(result.stdout.strip()) > 0
         elif self._provider == "tailscale":
             result = subprocess.run(
-                [_find_binary("tailscale"), "status"],
+                [find_binary("tailscale"), "status"],
                 capture_output=True, text=True,
             )
             return result.returncode == 0 and "stopped" not in result.stdout.lower()
@@ -58,19 +45,18 @@ class VPNModule(Module):
             return
 
         if self._provider == "wireguard":
-            cmd = ["sudo", _find_binary("wg-quick"), "up", self._config_path]
+            cmd = ["sudo", find_binary("wg-quick"), "up", self._config_path]
         elif self._provider == "amnezia":
-            cmd = ["sudo", _find_binary("amnezia-cli"), "connect", self._config_path]
+            cmd = ["sudo", find_binary("amnezia-cli"), "connect", self._config_path]
         elif self._provider == "tailscale":
-            cmd = ["sudo", _find_binary("tailscale"), "up"]
+            cmd = ["sudo", find_binary("tailscale"), "up"]
         else:
             raise ValueError(f"Unknown VPN provider: {self._provider}")
 
         click.confirm(
             f"Will run: {' '.join(cmd)}\nProceed?", default=True, abort=True
         )
-        env = {**os.environ, "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}"}
-        subprocess.run(cmd, check=True, env=env)
+        subprocess.run(cmd, check=True, env=sudo_env())
 
     def deactivate(self) -> None:
         if not self._provider:
@@ -78,16 +64,15 @@ class VPNModule(Module):
 
         if self._provider == "wireguard":
             interface = self._interface or self._config_path
-            cmd = ["sudo", _find_binary("wg-quick"), "down", interface]
+            cmd = ["sudo", find_binary("wg-quick"), "down", interface]
         elif self._provider == "amnezia":
-            cmd = ["sudo", _find_binary("amnezia-cli"), "disconnect"]
+            cmd = ["sudo", find_binary("amnezia-cli"), "disconnect"]
         elif self._provider == "tailscale":
-            cmd = ["sudo", _find_binary("tailscale"), "down"]
+            cmd = ["sudo", find_binary("tailscale"), "down"]
         else:
             return
 
-        env = {**os.environ, "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}"}
-        subprocess.run(cmd, check=True, env=env)
+        subprocess.run(cmd, check=True, env=sudo_env())
         self._provider = None
         self._config_path = None
         self._interface = None

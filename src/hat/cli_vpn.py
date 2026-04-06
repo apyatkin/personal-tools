@@ -2,23 +2,8 @@ from __future__ import annotations
 
 import click
 
-import shutil
-
 from hat.config import load_company_config, save_company_config
-
-
-def _find_binary(name: str) -> str:
-    """Find full path of a binary. sudo uses restricted PATH, so we need absolute paths."""
-    path = shutil.which(name)
-    if path:
-        return path
-    # Common Homebrew locations
-    for prefix in ["/opt/homebrew/bin", "/usr/local/bin"]:
-        candidate = f"{prefix}/{name}"
-        import os
-        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
-            return candidate
-    return name  # fallback to bare name
+from hat.utils import find_binary, sudo_env
 
 
 def _complete_company(ctx, param, incomplete):
@@ -120,15 +105,13 @@ def vpn_up(company: str, yes: bool):
         return
 
     # Check if already connected
-    import os
-    env = {**os.environ, "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}"}
     if provider == "wireguard":
-        result = subprocess.run(["sudo", _find_binary("wg"), "show"], capture_output=True, text=True, env=env)
+        result = subprocess.run(["sudo", find_binary("wg"), "show"], capture_output=True, text=True, env=sudo_env())
         if result.returncode == 0 and result.stdout.strip():
             click.echo(f"VPN already connected ({provider}).")
             return
     elif provider == "tailscale":
-        result = subprocess.run([_find_binary("tailscale"), "status"], capture_output=True, text=True)
+        result = subprocess.run([find_binary("tailscale"), "status"], capture_output=True, text=True)
         if result.returncode == 0 and "stopped" not in result.stdout.lower():
             click.echo(f"VPN already connected ({provider}).")
             return
@@ -139,14 +122,14 @@ def vpn_up(company: str, yes: bool):
         if not config_path:
             click.echo("WireGuard requires --config-file. Set it: hat vpn config <company> --config-file /path")
             return
-        cmd = ["sudo", _find_binary("wg-quick"), "up", config_path]
+        cmd = ["sudo", find_binary("wg-quick"), "up", config_path]
     elif provider == "amnezia":
         if not config_path:
             click.echo("Amnezia requires --config-file. Set it: hat vpn config <company> --config-file /path")
             return
-        cmd = ["sudo", _find_binary("amnezia-cli"), "connect", config_path]
+        cmd = ["sudo", find_binary("amnezia-cli"), "connect", config_path]
     elif provider == "tailscale":
-        cmd = ["sudo", _find_binary("tailscale"), "up"]
+        cmd = ["sudo", find_binary("tailscale"), "up"]
     else:
         click.echo(f"Unknown provider: {provider}")
         return
@@ -154,9 +137,7 @@ def vpn_up(company: str, yes: bool):
     if not yes:
         click.confirm(f"Will run: {' '.join(cmd)}\nProceed?", default=True, abort=True)
     try:
-        import os
-        env = {**os.environ, "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}"}
-        subprocess.run(cmd, check=True, env=env)
+        subprocess.run(cmd, check=True, env=sudo_env())
     except subprocess.CalledProcessError as e:
         click.echo(click.style(f"VPN connect failed (exit {e.returncode})", fg="red"))
         return
@@ -189,19 +170,17 @@ def vpn_down(company: str, yes: bool):
 
     if provider == "wireguard":
         interface = vpn.get("interface") or vpn.get("config")
-        cmd = ["sudo", _find_binary("wg-quick"), "down", interface]
+        cmd = ["sudo", find_binary("wg-quick"), "down", interface]
     elif provider == "amnezia":
-        cmd = ["sudo", _find_binary("amnezia-cli"), "disconnect"]
+        cmd = ["sudo", find_binary("amnezia-cli"), "disconnect"]
     elif provider == "tailscale":
-        cmd = ["sudo", _find_binary("tailscale"), "down"]
+        cmd = ["sudo", find_binary("tailscale"), "down"]
     else:
         click.echo(f"Unknown provider: {provider}")
         return
 
     try:
-        import os
-        env = {**os.environ, "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}"}
-        subprocess.run(cmd, check=True, env=env)
+        subprocess.run(cmd, check=True, env=sudo_env())
     except subprocess.CalledProcessError as e:
         click.echo(click.style(f"VPN disconnect failed (exit {e.returncode})", fg="red"))
         return
@@ -242,17 +221,15 @@ def vpn_status(company: str | None):
 
         connected = False
         if provider == "wireguard":
-            import os
-            env = {**os.environ, "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}"}
             # Try 'wg show' with no args — lists all active interfaces
             result = subprocess.run(
-                ["sudo", _find_binary("wg"), "show"],
-                capture_output=True, text=True, env=env,
+                ["sudo", find_binary("wg"), "show"],
+                capture_output=True, text=True, env=sudo_env(),
             )
             connected = result.returncode == 0 and len(result.stdout.strip()) > 0
         elif provider == "tailscale":
             result = subprocess.run(
-                [_find_binary("tailscale"), "status"],
+                [find_binary("tailscale"), "status"],
                 capture_output=True, text=True,
             )
             connected = result.returncode == 0 and "stopped" not in result.stdout.lower()
