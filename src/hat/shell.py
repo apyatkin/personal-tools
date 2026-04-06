@@ -28,8 +28,17 @@ _hat_precmd() {
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd _hat_precmd
 
-# Prompt indicator
-if [[ -n "$HAT_ACTIVE" ]]; then
-  RPROMPT="[${HAT_ACTIVE}] ${RPROMPT}"
-fi
+# Prompt indicator with VPN status
+_hat_prompt_info() {
+  local info=""
+  if [[ -n "$HAT_ACTIVE" ]]; then
+    info="$HAT_ACTIVE"
+    # Check VPN (fast, no sudo)
+    if ls /var/run/wireguard/ &>/dev/null 2>&1; then
+      info="$info|vpn"
+    fi
+    echo "[$info]"
+  fi
+}
+RPROMPT='$(_hat_prompt_info) '${RPROMPT}
 """
