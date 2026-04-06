@@ -96,6 +96,8 @@ def on_cmd(company: str, check_tools: bool):
     click.echo(f"Context switched to {company}.")
     from hat.activity_log import log_event
     log_event("on", company, activated)
+    from hat.notify import send_notification
+    send_notification("hat", f"Put on {company} hat")
 
 
 @main.command()
@@ -116,6 +118,8 @@ def off():
     click.echo("Context deactivated.")
     from hat.activity_log import log_event
     log_event("off", company_name)
+    from hat.notify import send_notification
+    send_notification("hat", f"Took off {company_name} hat")
 
 
 @main.command()
