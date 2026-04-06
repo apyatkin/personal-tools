@@ -1,11 +1,8 @@
-import json
-import subprocess
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from hat.repos import (
     list_remote_repos,
-    clone_repos,
     pull_repos,
     get_repos_dir,
 )
@@ -20,8 +17,14 @@ def test_list_remote_gitlab():
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = [
-        {"path_with_namespace": "infrastructure/deploy/charts", "ssh_url_to_repo": "git@gitlab.acme.com:infrastructure/deploy/charts.git"},
-        {"path_with_namespace": "infrastructure/terraform-modules", "ssh_url_to_repo": "git@gitlab.acme.com:infrastructure/terraform-modules.git"},
+        {
+            "path_with_namespace": "infrastructure/deploy/charts",
+            "ssh_url_to_repo": "git@gitlab.acme.com:infrastructure/deploy/charts.git",
+        },
+        {
+            "path_with_namespace": "infrastructure/terraform-modules",
+            "ssh_url_to_repo": "git@gitlab.acme.com:infrastructure/terraform-modules.git",
+        },
     ]
     mock_response.headers = {}
 

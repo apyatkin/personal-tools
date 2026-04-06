@@ -1,8 +1,8 @@
 """Plugin system for custom modules."""
+
 from __future__ import annotations
 
 import importlib.util
-from pathlib import Path
 
 from hat.config import get_config_dir
 from hat.modules import Module
@@ -25,11 +25,15 @@ def load_plugins() -> list[Module]:
             # Find Module subclasses
             for attr_name in dir(mod):
                 attr = getattr(mod, attr_name)
-                if (isinstance(attr, type) and issubclass(attr, Module)
-                        and attr is not Module):
+                if (
+                    isinstance(attr, type)
+                    and issubclass(attr, Module)
+                    and attr is not Module
+                ):
                     modules.append(attr())
         except Exception as e:
             import click
+
             click.echo(f"Plugin load error ({py_file.name}): {e}")
 
     return modules

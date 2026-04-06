@@ -58,6 +58,7 @@ def fix_issues() -> list[str]:
     """Auto-fix common issues."""
     from pathlib import Path
     import os
+
     fixed = []
 
     # Fix directory structure
@@ -72,6 +73,7 @@ def fix_issues() -> list[str]:
 
     # Fix file permissions
     from hat.config import get_config_dir
+
     config_dir = get_config_dir()
     for name in ["state.json", "state.env", "secrets.json", "active"]:
         path = config_dir / name
@@ -86,6 +88,7 @@ def fix_issues() -> list[str]:
     if tools:
         import shutil
         from hat.modules.tools import _brew_bin_name, _npm_bin_name
+
         missing = []
         for tool in tools.get("brew", []):
             if not shutil.which(_brew_bin_name(tool)):
@@ -97,7 +100,9 @@ def fix_issues() -> list[str]:
             if not shutil.which(_npm_bin_name(tool)):
                 missing.append(f"{tool} (npm)")
         if missing:
-            fixed.append(f"Missing tools: {', '.join(missing)} — run 'hat tools install'")
+            fixed.append(
+                f"Missing tools: {', '.join(missing)} — run 'hat tools install'"
+            )
 
     return fixed
 
@@ -113,6 +118,6 @@ def _check_tools() -> list[CheckResult]:
         if shutil.which(tool):
             results.append(CheckResult(f"tools/{tool}", "ok", "Installed"))
         else:
-            results.append(CheckResult(f"tools/{tool}", "warn", f"Not installed"))
+            results.append(CheckResult(f"tools/{tool}", "warn", "Not installed"))
 
     return results

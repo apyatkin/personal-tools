@@ -27,7 +27,8 @@ class CloudModule(Module):
             if aws.get("sso"):
                 subprocess.run(
                     ["aws", "sso", "login", "--profile", aws["profile"]],
-                    capture_output=True, text=True,
+                    capture_output=True,
+                    text=True,
                 )
             self._active_providers.append("aws")
 
@@ -71,7 +72,8 @@ class CloudModule(Module):
             yc = config["yandex"]
             subprocess.run(
                 ["yc", "config", "profile", "activate", yc["profile"]],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
             self._active_providers.append("yandex")
 
@@ -79,7 +81,8 @@ class CloudModule(Module):
             do = config["digitalocean"]
             subprocess.run(
                 ["doctl", "auth", "switch", "--context", do["context"]],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
             self._active_providers.append("digitalocean")
 
@@ -105,19 +108,29 @@ class CloudModule(Module):
         cluster = refresh.get("cluster", "")
         if provider == "yandex":
             subprocess.run(
-                ["yc", "managed-kubernetes", "cluster", "get-credentials",
-                 cluster, "--external", "--force"],
-                capture_output=True, text=True,
+                [
+                    "yc",
+                    "managed-kubernetes",
+                    "cluster",
+                    "get-credentials",
+                    cluster,
+                    "--external",
+                    "--force",
+                ],
+                capture_output=True,
+                text=True,
             )
         elif provider == "aws":
             subprocess.run(
                 ["aws", "eks", "update-kubeconfig", "--name", cluster],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
         elif provider == "digitalocean":
             subprocess.run(
                 ["doctl", "kubernetes", "cluster", "kubeconfig", "save", cluster],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
 
     def deactivate(self) -> None:

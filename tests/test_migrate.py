@@ -1,4 +1,3 @@
-from pathlib import Path
 from hat.migrate import migrate_from_ctx
 
 
@@ -23,5 +22,8 @@ def test_migrate_copies_company(tmp_path, monkeypatch):
 
     # Check tools section removed
     import yaml
-    new_config = yaml.safe_load((tmp_path / "hat" / "companies" / "acme" / "config.yaml").read_text())
+
+    new_config = yaml.safe_load(
+        (tmp_path / "hat" / "companies" / "acme" / "config.yaml").read_text()
+    )
     assert "tools" not in new_config

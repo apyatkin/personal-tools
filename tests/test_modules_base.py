@@ -84,14 +84,18 @@ def test_orchestrator_rollback_on_failure():
     class FailingModule(Module):
         name = "fail"
         order = 2
+
         def activate(self, config, secrets):
             raise ValueError("boom")
+
         def deactivate(self):
             pass
+
         def status(self):
             return ModuleStatus(active=False)
 
     import pytest
+
     a = FakeModuleA()
     fail = FailingModule()
     orch = Orchestrator([a, fail])

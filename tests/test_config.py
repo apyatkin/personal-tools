@@ -1,4 +1,3 @@
-import os
 import textwrap
 
 import pytest
@@ -22,12 +21,14 @@ def test_load_company_config(tmp_path, monkeypatch):
     company_dir = tmp_path / "companies" / "acme"
     company_dir.mkdir(parents=True)
     config_file = company_dir / "config.yaml"
-    config_file.write_text(textwrap.dedent("""\
+    config_file.write_text(
+        textwrap.dedent("""\
         name: acme
         description: "Acme Corp"
         env:
           FOO: bar
-    """))
+    """)
+    )
     config = load_company_config("acme")
     assert config["name"] == "acme"
     assert config["env"]["FOO"] == "bar"

@@ -13,6 +13,7 @@ def net_group():
 def domain_cmd(domain: str):
     """WHOIS/RDAP info for a domain."""
     from hat.net import domain_info
+
     info = domain_info(domain)
     click.echo(f"Domain:      {info['domain']}")
     if "registrar" in info:
@@ -24,6 +25,7 @@ def domain_cmd(domain: str):
         click.echo(f"Expires:     {expires}")
         try:
             from datetime import datetime
+
             exp_date = datetime.strptime(expires[:10], "%Y-%m-%d")
             days = (exp_date - datetime.now()).days
             color = "red" if days < 30 else "yellow" if days < 90 else "green"
@@ -42,6 +44,7 @@ def domain_cmd(domain: str):
 def cert_cmd(host: str, port: int):
     """SSL certificate info."""
     from hat.net import cert_info
+
     info = cert_info(host, port)
     click.echo(f"Subject:     {info.get('subject', 'N/A')}")
     click.echo(f"Issuer:      {info.get('issuer', 'N/A')}")
@@ -70,6 +73,7 @@ def cert_cmd(host: str, port: int):
 def ip_cmd(address: str):
     """IP address info — location, ISP, hosting."""
     from hat.net import ip_info
+
     info = ip_info(address)
     if "error" in info:
         click.echo(f"Error: {info['error']}")
@@ -87,6 +91,7 @@ def ip_cmd(address: str):
 def dns_cmd(domain: str):
     """DNS lookup — A, AAAA, MX, NS, CNAME, TXT records."""
     from hat.net import dns_lookup
+
     info = dns_lookup(domain)
     for rtype in ["A", "AAAA", "CNAME", "MX", "NS", "TXT"]:
         records = info.get(rtype, [])
@@ -100,37 +105,48 @@ def dns_cmd(domain: str):
 
 @net_group.command("check")
 @click.argument("host")
-@click.option("-p", "--port", "ports", multiple=True, type=int, help="Ports to check (repeatable)")
+@click.option(
+    "-p", "--port", "ports", multiple=True, type=int, help="Ports to check (repeatable)"
+)
 def net_check_cmd(host: str, ports: tuple[int, ...]):
     """Ping + traceroute + port check."""
     from hat.net import net_check
+
     port_list = list(ports) if ports else [22, 80, 443]
     click.echo(f"Checking {host}...")
     info = net_check(host, port_list)
 
     # Ping
     ping = info["ping"]
-    status = click.style("OK", fg="green") if ping["success"] else click.style("FAIL", fg="red")
+    status = (
+        click.style("OK", fg="green")
+        if ping["success"]
+        else click.style("FAIL", fg="red")
+    )
     click.echo(f"\nPing: {status}")
     for line in ping["output"]:
         click.echo(f"  {line}")
 
     # Ports
     if "ports" in info:
-        click.echo(f"\nPorts:")
+        click.echo("\nPorts:")
         for port, state in info["ports"].items():
             color = "green" if state == "open" else "red"
             click.echo(f"  {port}: {click.style(state, fg=color)}")
 
     # Traceroute
-    click.echo(f"\nTraceroute:")
+    click.echo("\nTraceroute:")
     for line in info.get("traceroute", []):
         click.echo(f"  {line}")
 
 
 @net_group.command("monitor")
-@click.option("--domain", "-d", "domains", multiple=True, help="Domain to check (repeatable)")
-@click.option("--host", "-h", "hosts", multiple=True, help="Host for cert check (repeatable)")
+@click.option(
+    "--domain", "-d", "domains", multiple=True, help="Domain to check (repeatable)"
+)
+@click.option(
+    "--host", "-h", "hosts", multiple=True, help="Host for cert check (repeatable)"
+)
 def net_monitor(domains: tuple[str, ...], hosts: tuple[str, ...]):
     """Check domain expiry and SSL certificates.
 

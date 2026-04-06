@@ -7,6 +7,7 @@ from hat.config import load_company_config, save_company_config
 
 def _complete_company(ctx, param, incomplete):
     from hat.config import list_companies
+
     return [c for c in list_companies() if c.startswith(incomplete)]
 
 
@@ -32,8 +33,16 @@ def ssh_group():
 @click.argument("host", shell_complete=_complete_host)
 @click.option("-u", "--user", default=None, help="Override SSH user")
 @click.option("-p", "--port", default=None, type=int, help="Override SSH port")
-@click.option("-k", "--key", "key_override", default=None, help="Override key (keychain name)")
-def ssh_connect(company: str, host: str, user: str | None, port: int | None, key_override: str | None):
+@click.option(
+    "-k", "--key", "key_override", default=None, help="Override key (keychain name)"
+)
+def ssh_connect(
+    company: str,
+    host: str,
+    user: str | None,
+    port: int | None,
+    key_override: str | None,
+):
     """SSH into a host.
 
     \b
@@ -111,6 +120,7 @@ def ssh_connect(company: str, host: str, user: str | None, port: int | None, key
     cmd.append(target)
 
     from hat.activity_log import log_event
+
     log_event("ssh", company, [host])
     os.execvp("ssh", cmd)
 
@@ -118,6 +128,7 @@ def ssh_connect(company: str, host: str, user: str | None, port: int | None, key
 def _show_hosts_for_company(company: str) -> bool:
     """Show SSH hosts for a company. Returns True if any hosts found."""
     from hat.output import header, item
+
     config = load_company_config(company)
     ssh_config = config.get("ssh", {})
 
@@ -187,7 +198,7 @@ def ssh_list(company: str | None):
         click.echo("Add one: hat ssh add <company> <name> <address>")
         return
 
-    click.echo(f"\n  Connect: hat ssh connect <company> <host>")
+    click.echo("\n  Connect: hat ssh connect <company> <host>")
 
 
 @ssh_group.command("add")
@@ -197,7 +208,14 @@ def ssh_list(company: str | None):
 @click.option("-u", "--user", default=None, help="SSH user (overrides company default)")
 @click.option("-p", "--port", default=None, type=int, help="SSH port (default: 22)")
 @click.option("-k", "--key", "key_ref", default=None, help="Keychain name for SSH key")
-def ssh_add(company: str, name: str, address: str, user: str | None, port: int | None, key_ref: str | None):
+def ssh_add(
+    company: str,
+    name: str,
+    address: str,
+    user: str | None,
+    port: int | None,
+    key_ref: str | None,
+):
     """Add an SSH host.
 
     \b
@@ -302,7 +320,13 @@ def ssh_generate_config(company: str | None):
 @click.option("--default-key", default=None, help="Set default SSH key (keychain name)")
 @click.option("--jump", default=None, help="Set jump host (address or user@address)")
 @click.option("--jump-key", default=None, help="Set jump host key (keychain name)")
-def ssh_config_cmd(company: str, default_user: str | None, default_key: str | None, jump: str | None, jump_key: str | None):
+def ssh_config_cmd(
+    company: str,
+    default_user: str | None,
+    default_key: str | None,
+    jump: str | None,
+    jump_key: str | None,
+):
     """Show or set SSH defaults for a company.
 
     \b

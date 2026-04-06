@@ -1,4 +1,5 @@
 """Example hat plugin — add a custom 'hello' module."""
+
 from hat.modules import Module, ModuleStatus
 
 
@@ -8,6 +9,7 @@ class HelloModule(Module):
 
     def activate(self, config: dict, secrets: dict) -> None:
         import click
+
         msg = config.get("message", "Hello!")
         click.echo(f"    {msg}")
 

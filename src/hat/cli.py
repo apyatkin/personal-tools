@@ -3,7 +3,12 @@ from __future__ import annotations
 import click
 import yaml
 
-from hat.config import get_config_dir, load_company_config, list_companies, validate_company_name
+from hat.config import (
+    get_config_dir,
+    load_company_config,
+    list_companies,
+    validate_company_name,
+)
 from hat.modules import Orchestrator
 from hat.modules.tools import ToolsModule
 from hat.modules.vpn import VPNModule
@@ -40,6 +45,7 @@ def _build_orchestrator() -> Orchestrator:
 
     try:
         from hat.plugins import load_plugins
+
         plugins = load_plugins()
     except Exception:
         plugins = []
@@ -47,10 +53,22 @@ def _build_orchestrator() -> Orchestrator:
     return Orchestrator(builtin + plugins)
 
 
-MODULE_NAMES = frozenset({
-    "tools", "vpn", "dns", "hosts", "ssh", "git",
-    "cloud", "env", "docker", "proxy", "browser", "apps",
-})
+MODULE_NAMES = frozenset(
+    {
+        "tools",
+        "vpn",
+        "dns",
+        "hosts",
+        "ssh",
+        "git",
+        "cloud",
+        "env",
+        "docker",
+        "proxy",
+        "browser",
+        "apps",
+    }
+)
 
 
 def _complete_company(ctx, param, incomplete):
@@ -64,6 +82,7 @@ def main(ctx):
     """Company context switcher."""
     if ctx.invoked_subcommand is None:
         from hat.tui import run_tui
+
         run_tui()
 
 
@@ -71,6 +90,7 @@ def main(ctx):
 def tui_cmd():
     """Interactive menu."""
     from hat.tui import run_tui
+
     run_tui()
 
 
@@ -78,6 +98,7 @@ def tui_cmd():
 def watch():
     """Live dashboard — auto-refreshing status."""
     from hat.watch import run_watch
+
     run_watch()
 
 
@@ -85,6 +106,7 @@ def watch():
 def plugins_cmd():
     """List loaded plugins."""
     from hat.plugins import load_plugins, PLUGINS_DIR
+
     click.echo(f"Plugin directory: {PLUGINS_DIR}")
     plugins = load_plugins()
     if not plugins:
@@ -121,6 +143,7 @@ def on_cmd(company: str, check_tools: bool, no_vpn: bool):
 
     # Tools come from ~/projects/common/tools.yaml, not per-company
     from hat.common import load_common_tools
+
     common_tools = load_common_tools()
     if common_tools:
         module_config["tools"] = common_tools
@@ -133,7 +156,9 @@ def on_cmd(company: str, check_tools: bool, no_vpn: bool):
     try:
         orch = _build_orchestrator()
         activated = orch.activate(
-            config=module_config, secrets=secrets, only_configured=True,
+            config=module_config,
+            secrets=secrets,
+            only_configured=True,
             on_activate=lambda name: click.echo(f"  {name}..."),
         )
     except RuntimeError as e:
@@ -144,8 +169,10 @@ def on_cmd(company: str, check_tools: bool, no_vpn: bool):
     sm.save()
     click.echo(f"Context switched to {company}.")
     from hat.activity_log import log_event
+
     log_event("on", company, activated)
     from hat.notify import send_notification
+
     send_notification("hat", f"Put on {company} hat")
 
 
@@ -170,6 +197,7 @@ def off(company: str | None):
             if provider:
                 import subprocess
                 from hat.utils import find_binary, sudo_env
+
                 if provider == "wireguard":
                     interface = vpn_config.get("interface") or vpn_config.get("config")
                     cmd = ["sudo", find_binary("wg-quick"), "down", interface]
@@ -192,8 +220,10 @@ def off(company: str | None):
     sm.save()
     click.echo("Context deactivated.")
     from hat.activity_log import log_event
+
     log_event("off", company_name)
     from hat.notify import send_notification
+
     send_notification("hat", f"Took off {company_name} hat")
 
 
@@ -239,6 +269,7 @@ def init(company: str):
 
     # Create project directory
     from pathlib import Path
+
     projects_dir = Path.home() / "projects" / company
     projects_dir.mkdir(parents=True, exist_ok=True)
     (projects_dir / "repos").mkdir(exist_ok=True)
@@ -261,12 +292,16 @@ def init(company: str):
         "browser": {},
         "apps": {},
     }
-    config_file.write_text(yaml.dump(template, default_flow_style=False, sort_keys=False))
+    config_file.write_text(
+        yaml.dump(template, default_flow_style=False, sort_keys=False)
+    )
     click.echo(f"Created {config_file}")
     click.echo(f"Created {projects_dir}/")
     click.echo("Next steps:")
     click.echo(f"  hat ssh config {company} --default-user <user>")
-    click.echo(f"  hat vpn config {company} --provider wireguard --config-file {projects_dir}/wg0.conf")
+    click.echo(
+        f"  hat vpn config {company} --provider wireguard --config-file {projects_dir}/wg0.conf"
+    )
     click.echo(f"  hat config set {company} git.identity.name 'Your Name'")
 
 
@@ -292,6 +327,7 @@ def run_cmd(company: str, command: tuple[str, ...]):
 
     env = {**os.environ, **build_company_env(company)}
     from hat.activity_log import log_event
+
     log_event("run", company, list(command))
     result = subprocess.run(list(command), env=env)
     raise SystemExit(result.returncode)
@@ -303,6 +339,7 @@ def run_cmd(company: str, command: tuple[str, ...]):
 def env_cmd(company: str, export_format: bool):
     """Show env vars that would be set for a company (dry run)."""
     from hat.env_builder import build_company_env
+
     env = build_company_env(company)
     if not env:
         click.echo("No env vars configured.")
@@ -320,13 +357,12 @@ def shell_cmd(company: str):
     """Spawn a new shell with a company's environment."""
     import os
     from hat.env_builder import build_company_env
+
     env = {**os.environ, **build_company_env(company)}
     env["HAT_ACTIVE"] = company
     shell = os.environ.get("SHELL", "/bin/zsh")
     click.echo(f"Entering {company} shell. Type 'exit' to leave.")
     os.execve(shell, [shell], env)
-
-
 
 
 @main.command()
@@ -335,6 +371,7 @@ def shell_cmd(company: str):
 def doctor(company: str | None, fix: bool):
     """Health check — validate configs, secrets, tools."""
     from hat.doctor import run_checks
+
     results = run_checks(company)
     for r in results:
         if r.level == "ok":
@@ -352,6 +389,7 @@ def doctor(company: str | None, fix: bool):
 
     if fix:
         from hat.doctor import fix_issues
+
         fixes = fix_issues()
         if fixes:
             click.echo("\nFixes applied:")
@@ -365,17 +403,26 @@ def doctor(company: str | None, fix: bool):
 def migrate():
     """Migrate config from ~/.config/ctx/ to ~/Library/hat/."""
     from hat.migrate import migrate_from_ctx
+
     actions = migrate_from_ctx()
     for action in actions:
         click.echo(action)
 
 
 @main.command()
-@click.option("-o", "--output", "output_dir", type=click.Path(), default=None, help="Output directory")
+@click.option(
+    "-o",
+    "--output",
+    "output_dir",
+    type=click.Path(),
+    default=None,
+    help="Output directory",
+)
 def backup(output_dir: str | None):
     """Backup configs to a tarball."""
     from hat.backup import create_backup
     from pathlib import Path
+
     path = create_backup(Path(output_dir) if output_dir else None)
     click.echo(f"Backup created: {path}")
 
@@ -386,6 +433,7 @@ def restore(archive: str):
     """Restore configs from a backup tarball."""
     from hat.backup import restore_backup
     from pathlib import Path
+
     click.confirm("This will overwrite existing configs. Continue?", abort=True)
     actions = restore_backup(Path(archive))
     for a in actions:
@@ -399,6 +447,7 @@ def export_cmd(company: str, output_dir: str | None):
     """Export a company config for sharing."""
     from hat.transfer import export_company
     from pathlib import Path
+
     path = export_company(company, Path(output_dir) if output_dir else None)
     click.echo(f"Exported to: {path}")
     click.echo("Share this file — secrets are referenced, not included.")
@@ -411,6 +460,7 @@ def import_cmd(archive: str, name: str | None):
     """Import a company config from an export."""
     from hat.transfer import import_company
     from pathlib import Path
+
     company = import_company(Path(archive), name)
     click.echo(f"Imported: {company}")
     click.echo(f"Add secrets: hat secret list --company {company}")
@@ -418,10 +468,13 @@ def import_cmd(archive: str, name: str | None):
 
 @main.command()
 @click.argument("company", shell_complete=_complete_company)
-@click.option("--from", "from_company", required=True, help="Source company to copy from")
+@click.option(
+    "--from", "from_company", required=True, help="Source company to copy from"
+)
 def template(company: str, from_company: str):
     """Create a new company config based on an existing one."""
     from hat.config import clone_company_config
+
     path = clone_company_config(from_company, company)
     click.echo(f"Created {path} (based on {from_company})")
     click.echo("Secrets have been cleared — add them with 'hat config add-secret'.")
@@ -436,6 +489,7 @@ def kubeconfig():
 def kubeconfig_merge():
     """Merge all company kubeconfigs into one."""
     from hat.kubeconfig import merge_kubeconfigs
+
     path = merge_kubeconfigs()
     click.echo(f"Merged kubeconfig: {path}")
     click.echo(f"export KUBECONFIG={path}")
@@ -447,10 +501,15 @@ def kubeconfig_merge():
 def diff_cmd(company1: str, company2: str):
     """Compare two company configs."""
     import difflib
+
     config1 = load_company_config(company1)
     config2 = load_company_config(company2)
-    yaml1 = yaml.dump(config1, default_flow_style=False, sort_keys=True).splitlines(keepends=True)
-    yaml2 = yaml.dump(config2, default_flow_style=False, sort_keys=True).splitlines(keepends=True)
+    yaml1 = yaml.dump(config1, default_flow_style=False, sort_keys=True).splitlines(
+        keepends=True
+    )
+    yaml2 = yaml.dump(config2, default_flow_style=False, sort_keys=True).splitlines(
+        keepends=True
+    )
     diff = difflib.unified_diff(yaml1, yaml2, fromfile=company1, tofile=company2)
     output = "".join(diff)
     if not output:
@@ -465,6 +524,7 @@ def diff_cmd(company1: str, company2: str):
 def log_cmd(company: str | None, limit: int):
     """Show activity log."""
     from hat.activity_log import read_log
+
     entries = read_log(company, limit)
     if not entries:
         click.echo("No log entries.")
@@ -486,6 +546,7 @@ def tunnel_group():
 def tunnel_start(company: str):
     """Start tunnels for a company."""
     from hat.tunnel import start_tunnels
+
     results = start_tunnels(company)
     if not results:
         click.echo("No tunnels configured. Add ssh.tunnels to company config.")
@@ -496,6 +557,7 @@ def tunnel_start(company: str):
     sm = StateManager()
     sm._dir.mkdir(parents=True, exist_ok=True)
     import json
+
     pids_file = sm._dir / "tunnel_pids.json"
     pids_file.write_text(json.dumps([r["pid"] for r in results]))
 
@@ -505,6 +567,7 @@ def tunnel_stop():
     """Stop all running tunnels."""
     from hat.tunnel import stop_tunnels
     import json
+
     sm = StateManager()
     pids_file = sm._dir / "tunnel_pids.json"
     if not pids_file.exists():
@@ -556,9 +619,17 @@ def setup():
     if pam_file.exists() and "pam_tid.so" in pam_file.read_text():
         click.echo("  [OK] Touch ID for sudo (already enabled)")
     else:
-        if click.confirm("\n  Enable Touch ID for sudo? (uses fingerprint instead of password)", default=True):
+        if click.confirm(
+            "\n  Enable Touch ID for sudo? (uses fingerprint instead of password)",
+            default=True,
+        ):
             result = subprocess.run(
-                ["sudo", "sh", "-c", 'echo "auth       sufficient     pam_tid.so" > /etc/pam.d/sudo_local'],
+                [
+                    "sudo",
+                    "sh",
+                    "-c",
+                    'echo "auth       sufficient     pam_tid.so" > /etc/pam.d/sudo_local',
+                ],
                 capture_output=False,
             )
             if result.returncode == 0:
@@ -570,6 +641,7 @@ def setup():
 
     # 3. Generate aliases and completions
     from hat.common import generate_aliases, generate_completions
+
     generate_aliases()
     click.echo("  [OK] ~/projects/common/aliases.sh")
     generate_completions()
@@ -610,6 +682,7 @@ def sync(company: str | None):
                 click.echo(f"\nRepos ({name})...")
                 from hat.repos import sync_repos
                 from hat.secrets import SecretResolver
+
                 resolver = SecretResolver()
                 secrets = resolver.resolve_refs(config)
                 identity = config.get("git", {}).get("identity")
@@ -625,6 +698,7 @@ def sync(company: str | None):
     from hat.cli_secret import _collect_config_secrets
     from hat.secret_registry import register
     from hat.secrets import SecretResolver
+
     resolver = SecretResolver()
     for name in companies:
         try:
@@ -658,7 +732,6 @@ HELP_TOPICS = {
     hat ssh list [company]
     hat ssh remove <company> <host>
     hat ssh generate-config [company]  # for ~/.ssh/config""",
-
     "vpn": """VPN Management
 
   Configure:
@@ -673,7 +746,6 @@ HELP_TOPICS = {
     hat vpn status [company]
 
   Supported: wireguard, amnezia, tailscale""",
-
     "secrets": """Secret Management
 
   Store:
@@ -689,7 +761,6 @@ HELP_TOPICS = {
     hat secret scan
 
   Backends: keychain:<name>, bitwarden:<item>[/password|/notes|/field/<name>]""",
-
     "tools": """Tool Management
 
   Setup:
@@ -704,7 +775,6 @@ HELP_TOPICS = {
     hat tools remove brew k9s
 
   Package managers: brew, pipx (uv tool), npm""",
-
     "net": """Network Tools
 
     hat net domain example.com     WHOIS + RDAP (expiry, registrar)
@@ -713,7 +783,6 @@ HELP_TOPICS = {
     hat net dns example.com        A, AAAA, MX, NS, CNAME, TXT records
     hat net check host.com         ping + traceroute + port check
     hat net check host -p 8080     specific ports""",
-
     "config": """Configuration
 
   Company config: ~/Library/hat/companies/<name>/config.yaml

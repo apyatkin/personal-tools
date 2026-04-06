@@ -1,7 +1,7 @@
 """Interactive TUI for hat."""
+
 from __future__ import annotations
 
-import click
 from rich.console import Console
 from rich.table import Table
 from rich.prompt import Prompt
@@ -20,15 +20,21 @@ def run_tui():
         sm = StateManager()
         active = sm.active_company
 
-        console.print(Panel.fit(
-            f"[bold]hat[/bold] — Company Context Switcher\n"
-            f"Active: [green]{active}[/green]" if active else "[bold]hat[/bold] — Company Context Switcher\nActive: [dim]none[/dim]",
-            border_style="blue",
-        ))
+        console.print(
+            Panel.fit(
+                f"[bold]hat[/bold] — Company Context Switcher\n"
+                f"Active: [green]{active}[/green]"
+                if active
+                else "[bold]hat[/bold] — Company Context Switcher\nActive: [dim]none[/dim]",
+                border_style="blue",
+            )
+        )
 
         companies = list_companies()
         if not companies:
-            console.print("[yellow]No companies configured. Run: hat init <name>[/yellow]")
+            console.print(
+                "[yellow]No companies configured. Run: hat init <name>[/yellow]"
+            )
             return
 
         console.print("\n[bold]Companies:[/bold]")
@@ -36,9 +42,15 @@ def run_tui():
             marker = " [green](active)[/green]" if name == active else ""
             console.print(f"  {i}. {name}{marker}")
 
-        console.print(f"\n[bold]Actions:[/bold]")
-        console.print("  [cyan]1-{0}[/cyan] Switch company    [cyan]s[/cyan] Status    [cyan]d[/cyan] Doctor".format(len(companies)))
-        console.print("  [cyan]v[/cyan]   VPN up/down        [cyan]h[/cyan] SSH hosts  [cyan]t[/cyan] Tools")
+        console.print("\n[bold]Actions:[/bold]")
+        console.print(
+            "  [cyan]1-{0}[/cyan] Switch company    [cyan]s[/cyan] Status    [cyan]d[/cyan] Doctor".format(
+                len(companies)
+            )
+        )
+        console.print(
+            "  [cyan]v[/cyan]   VPN up/down        [cyan]h[/cyan] SSH hosts  [cyan]t[/cyan] Tools"
+        )
         console.print("  [cyan]q[/cyan]   Quit")
 
         choice = Prompt.ask("\nChoice", default="q")
@@ -77,6 +89,7 @@ def _show_status(sm: StateManager):
 
 def _show_doctor():
     from hat.doctor import run_checks
+
     results = run_checks()
     table = Table(title="Health Check")
     table.add_column("Check")
@@ -99,19 +112,23 @@ def _vpn_toggle(sm: StateManager):
         return
     action = Prompt.ask("VPN", choices=["up", "down", "status"], default="status")
     import subprocess
+
     subprocess.run(["hat", "vpn", action, sm.active_company])
 
 
 def _show_ssh_hosts():
     import subprocess
+
     subprocess.run(["hat", "ssh", "list"])
 
 
 def _show_tools():
     import subprocess
+
     subprocess.run(["hat", "tools", "list"])
 
 
 def _switch_company(company: str):
     import subprocess
+
     subprocess.run(["hat", "on", company, "--no-vpn"])

@@ -53,7 +53,8 @@ def generate_tools_config(target_dir: Path | None = None) -> Path:
     path.write_text(yaml.dump(DEFAULT_TOOLS, default_flow_style=False, sort_keys=False))
     return path
 
-ALIASES = '''\
+
+ALIASES = """\
 # Kubernetes
 alias k="kubectl"
 alias kgp="kubectl get pods"
@@ -209,9 +210,9 @@ alias myip="curl -s ifconfig.me"
 alias ports="lsof -i -P -n | grep LISTEN"
 alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"
 alias watch="watch "
-'''
+"""
 
-COMPLETIONS = '''\
+COMPLETIONS = """\
 # Native completions
 source <(kubectl completion zsh 2>/dev/null)
 source <(helm completion zsh 2>/dev/null)
@@ -235,11 +236,11 @@ compdef cm=consul
 compdef d=docker
 compdef dc="docker compose"
 compdef g=git
-'''
+"""
 
 
 def generate_aliases(target_dir: Path | None = None) -> Path:
-    target = (target_dir or COMMON_DIR)
+    target = target_dir or COMMON_DIR
     target.mkdir(parents=True, exist_ok=True)
     path = target / "aliases.sh"
     path.write_text(ALIASES)
@@ -247,7 +248,7 @@ def generate_aliases(target_dir: Path | None = None) -> Path:
 
 
 def generate_completions(target_dir: Path | None = None) -> Path:
-    target = (target_dir or COMMON_DIR)
+    target = target_dir or COMMON_DIR
     target.mkdir(parents=True, exist_ok=True)
     path = target / "completions.sh"
     path.write_text(COMPLETIONS)

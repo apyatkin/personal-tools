@@ -1,5 +1,6 @@
 from hat.activity_log import log_event, read_log
 
+
 def test_log_and_read(tmp_path, monkeypatch):
     monkeypatch.setenv("HAT_CONFIG_DIR", str(tmp_path))
     log_event("on", "acme", ["env", "git"])
@@ -9,6 +10,7 @@ def test_log_and_read(tmp_path, monkeypatch):
     assert entries[0]["action"] == "on"
     assert entries[1]["action"] == "off"
 
+
 def test_log_filter_company(tmp_path, monkeypatch):
     monkeypatch.setenv("HAT_CONFIG_DIR", str(tmp_path))
     log_event("on", "acme")
@@ -16,6 +18,7 @@ def test_log_filter_company(tmp_path, monkeypatch):
     entries = read_log(company="acme")
     assert len(entries) == 1
     assert entries[0]["company"] == "acme"
+
 
 def test_log_limit(tmp_path, monkeypatch):
     monkeypatch.setenv("HAT_CONFIG_DIR", str(tmp_path))

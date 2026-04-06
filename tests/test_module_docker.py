@@ -22,8 +22,7 @@ def test_docker_activate():
         mock_run.return_value.returncode = 0
         mod.activate(config, secrets)
     mock_run.assert_called_once_with(
-        ["docker", "login", "registry.acme.com",
-         "-u", "admin", "--password-stdin"],
+        ["docker", "login", "registry.acme.com", "-u", "admin", "--password-stdin"],
         input="s3cret",
         capture_output=True,
         text=True,
@@ -33,7 +32,13 @@ def test_docker_activate():
 def test_docker_deactivate():
     mod = DockerModule()
     config = {
-        "registries": [{"host": "registry.acme.com", "username_ref": "keychain:u", "password_ref": "keychain:p"}]
+        "registries": [
+            {
+                "host": "registry.acme.com",
+                "username_ref": "keychain:u",
+                "password_ref": "keychain:p",
+            }
+        ]
     }
     secrets = {"keychain:u": "a", "keychain:p": "b"}
     with patch("hat.modules.docker.subprocess.run") as mock_run:
@@ -43,7 +48,8 @@ def test_docker_deactivate():
     last_call = mock_run.call_args_list[-1]
     assert last_call == call(
         ["docker", "logout", "registry.acme.com"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
 
 

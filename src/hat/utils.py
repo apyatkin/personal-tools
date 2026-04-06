@@ -1,4 +1,5 @@
 """Shared utilities for hat CLI."""
+
 from __future__ import annotations
 
 import os
@@ -19,4 +20,7 @@ def find_binary(name: str) -> str:
 
 def sudo_env() -> dict[str, str]:
     """Build environment dict with Homebrew in PATH for sudo commands."""
-    return {**os.environ, "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}"}
+    return {
+        **os.environ,
+        "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}",
+    }

@@ -52,13 +52,16 @@ class SecretResolver:
 
     def _resolve_keychain(self, service: str) -> str:
         import base64
+
         result = subprocess.run(
             ["security", "find-generic-password", "-s", service, "-w"],
             capture_output=True,
             text=True,
         )
         if result.returncode != 0:
-            raise RuntimeError(f"Failed to read keychain secret '{service}': {result.stderr.strip()}")
+            raise RuntimeError(
+                f"Failed to read keychain secret '{service}': {result.stderr.strip()}"
+            )
         raw = result.stdout.strip()
         try:
             return base64.b64decode(raw).decode()
@@ -93,18 +96,24 @@ class SecretResolver:
             )
             if result.returncode == 0:
                 import json
+
                 item = json.loads(result.stdout)
                 for f in item.get("fields", []):
                     if f["name"] == field:
                         return f["value"]
-                raise RuntimeError(f"Field '{field}' not found in bitwarden item '{item_name}'")
+                raise RuntimeError(
+                    f"Field '{field}' not found in bitwarden item '{item_name}'"
+                )
 
         if result.returncode != 0:
-            raise RuntimeError(f"Failed to read bitwarden secret '{path}': {result.stderr.strip()}")
+            raise RuntimeError(
+                f"Failed to read bitwarden secret '{path}': {result.stderr.strip()}"
+            )
         return result.stdout.strip()
 
     def _unlock_bitwarden(self) -> str:
         import os
+
         session = os.environ.get("BW_SESSION")
         if session:
             return session

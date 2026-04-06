@@ -30,7 +30,9 @@ def test_ip_info():
     mock_response = MagicMock()
     mock_response.json.return_value = {
         "ip": "1.2.3.4",
-        "country": "US", "region": "California", "city": "LA",
+        "country": "US",
+        "region": "California",
+        "city": "LA",
         "org": "AS14061 DigitalOcean",
     }
     with patch("httpx.get", return_value=mock_response):

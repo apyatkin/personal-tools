@@ -36,6 +36,7 @@ def tools_list():
         click.echo(f"\n  {method}:")
         for tool in sorted(items):
             from hat.modules.tools import _npm_bin_name, _brew_bin_name
+
             if method == "npm":
                 bin_name = _npm_bin_name(tool)
             elif method == "brew":
@@ -43,7 +44,11 @@ def tools_list():
             else:
                 bin_name = tool
             installed = shutil.which(bin_name) is not None
-            status = click.style("installed", fg="green") if installed else click.style("missing", fg="red")
+            status = (
+                click.style("installed", fg="green")
+                if installed
+                else click.style("missing", fg="red")
+            )
             click.echo(f"    {tool:30s} [{status}]")
 
 
@@ -78,7 +83,7 @@ def tools_add(method: str, package: str):
     tools_file = COMMON_DIR / "tools.yaml"
     tools_file.write_text(yaml.dump(tools, default_flow_style=False, sort_keys=False))
     click.echo(f"Added {package} to {method}.")
-    click.echo(f"Run 'hat tools install' to install it.")
+    click.echo("Run 'hat tools install' to install it.")
 
 
 @tools_group.command("remove")
@@ -110,11 +115,13 @@ def tools_remove(method: str, package: str):
 def tools_install():
     """Install/update all tools from ~/projects/common/tools.yaml."""
     from hat.common import load_common_tools
+
     tools_config = load_common_tools()
     if not tools_config:
         click.echo("No tools configured. Run 'hat tools init' first.")
         return
     from hat.modules.tools import ToolsModule
+
     mod = ToolsModule()
     mod.activate(tools_config, secrets={})
 
@@ -135,6 +142,7 @@ def tools_check():
     for method in ["brew", "pipx", "npm"]:
         for tool in tools.get(method, []):
             from hat.modules.tools import _npm_bin_name
+
             bin_name = _npm_bin_name(tool) if method == "npm" else tool
             if shutil.which(bin_name):
                 installed += 1
@@ -151,6 +159,7 @@ def tools_check():
 def tools_init():
     """Generate ~/projects/common/tools.yaml with default tools."""
     from hat.common import generate_tools_config
+
     path = generate_tools_config()
     click.echo(f"Generated {path}")
     click.echo("View with: hat tools list")
@@ -165,6 +174,7 @@ def aliases():
 def aliases_generate():
     """Generate ~/projects/common/aliases.sh."""
     from hat.common import generate_aliases
+
     path = generate_aliases()
     click.echo(f"Generated {path}")
 
@@ -178,6 +188,7 @@ def completions():
 def completions_generate():
     """Generate ~/projects/common/completions.sh."""
     from hat.common import generate_completions
+
     path = generate_completions()
     click.echo(f"Generated {path}")
 
@@ -191,6 +202,7 @@ def skills():
 def skills_deploy():
     """Deploy skills to ~/projects/.claude/skills/ as symlinks."""
     from hat.skills import get_skills_source, deploy_skills
+
     source = get_skills_source()
     if not source.exists():
         click.echo(f"Skills source not found: {source}")

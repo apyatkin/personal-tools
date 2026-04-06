@@ -46,14 +46,16 @@ def _list_gitlab(source: dict, secrets: dict) -> list[dict]:
                 # Strip the group prefix to get relative path
                 prefix = group + "/"
                 if full_path.startswith(prefix):
-                    relative = full_path[len(prefix):]
+                    relative = full_path[len(prefix) :]
                 else:
                     relative = full_path.rsplit("/", 1)[-1]
 
-                repos.append({
-                    "relative_path": relative,
-                    "clone_url": proj["ssh_url_to_repo"],
-                })
+                repos.append(
+                    {
+                        "relative_path": relative,
+                        "clone_url": proj["ssh_url_to_repo"],
+                    }
+                )
 
             next_page = resp.headers.get("x-next-page", "")
             if not next_page:
@@ -83,10 +85,12 @@ def _list_github(source: dict, secrets: dict) -> list[dict]:
                 break
 
             for repo in items:
-                repos.append({
-                    "relative_path": repo["name"],
-                    "clone_url": repo["ssh_url"],
-                })
+                repos.append(
+                    {
+                        "relative_path": repo["name"],
+                        "clone_url": repo["ssh_url"],
+                    }
+                )
 
             if len(items) < per_page:
                 break
@@ -124,16 +128,22 @@ def clone_repos(
             text=True,
         )
         if result.returncode != 0:
-            return {"path": str(target), "status": "failed", "reason": result.stderr.strip()}
+            return {
+                "path": str(target),
+                "status": "failed",
+                "reason": result.stderr.strip(),
+            }
 
         if git_identity:
             subprocess.run(
                 ["git", "config", "user.name", git_identity["name"]],
-                cwd=str(target), capture_output=True,
+                cwd=str(target),
+                capture_output=True,
             )
             subprocess.run(
                 ["git", "config", "user.email", git_identity["email"]],
-                cwd=str(target), capture_output=True,
+                cwd=str(target),
+                capture_output=True,
             )
 
         return {"path": str(target), "status": "cloned"}
@@ -163,10 +173,7 @@ def pull_repos(repos_dir: Path, concurrency: int = 4) -> list[dict]:
     if not repos_dir.exists():
         return []
 
-    git_dirs = [
-        p.parent for p in repos_dir.rglob(".git")
-        if p.is_dir()
-    ]
+    git_dirs = [p.parent for p in repos_dir.rglob(".git") if p.is_dir()]
 
     results = []
 

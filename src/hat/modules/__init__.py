@@ -29,7 +29,10 @@ class Orchestrator:
         self._sorted = sorted(modules, key=lambda m: m.order)
 
     def activate(
-        self, config: dict, secrets: dict, only_configured: bool = False,
+        self,
+        config: dict,
+        secrets: dict,
+        only_configured: bool = False,
         on_activate: callable | None = None,
     ) -> list[str]:
         activated = []
@@ -64,6 +67,7 @@ class Orchestrator:
                 deactivated.append(mod.name)  # still mark as attempted
         if errors:
             import click
+
             for err in errors:
                 click.echo(f"  deactivate warning: {err}")
         return deactivated

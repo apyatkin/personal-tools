@@ -22,7 +22,9 @@ def merge_kubeconfigs(companies: list[str] | None = None) -> Path:
 
     for company in companies:
         config = load_company_config(company)
-        kubeconfig_path = config.get("cloud", {}).get("kubernetes", {}).get("kubeconfig")
+        kubeconfig_path = (
+            config.get("cloud", {}).get("kubernetes", {}).get("kubeconfig")
+        )
         if not kubeconfig_path:
             continue
 

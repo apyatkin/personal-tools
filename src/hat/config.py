@@ -11,7 +11,9 @@ VALID_NAME_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 def validate_company_name(name: str) -> None:
     if not VALID_NAME_RE.match(name):
-        raise ValueError(f"Invalid company name '{name}'. Use only letters, numbers, hyphens, underscores.")
+        raise ValueError(
+            f"Invalid company name '{name}'. Use only letters, numbers, hyphens, underscores."
+        )
 
 
 def get_config_dir() -> Path:

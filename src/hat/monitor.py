@@ -1,4 +1,5 @@
 """Monitor domain expiry and SSL certificates."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -24,15 +25,20 @@ def check_all_domains(domains: dict[str, list[str]]) -> list[MonitorAlert]:
                 expires = info.get("expires", "")
                 if expires:
                     from datetime import datetime
+
                     try:
                         exp_date = datetime.strptime(expires[:10], "%Y-%m-%d")
                         days = (exp_date - datetime.now()).days
                         if days < 90:
-                            alerts.append(MonitorAlert(
-                                company=company, type="domain", name=domain,
-                                days_left=days,
-                                message=f"{domain} expires in {days} days ({expires[:10]})",
-                            ))
+                            alerts.append(
+                                MonitorAlert(
+                                    company=company,
+                                    type="domain",
+                                    name=domain,
+                                    days_left=days,
+                                    message=f"{domain} expires in {days} days ({expires[:10]})",
+                                )
+                            )
                     except ValueError:
                         pass
             except Exception:
@@ -49,17 +55,25 @@ def check_all_certs(hosts: dict[str, list[str]]) -> list[MonitorAlert]:
                 info = cert_info(host)
                 days = info.get("days_until_expiry")
                 if days is not None and days < 90:
-                    alerts.append(MonitorAlert(
-                        company=company, type="cert", name=host,
-                        days_left=days,
-                        message=f"{host} cert expires in {days} days",
-                    ))
+                    alerts.append(
+                        MonitorAlert(
+                            company=company,
+                            type="cert",
+                            name=host,
+                            days_left=days,
+                            message=f"{host} cert expires in {days} days",
+                        )
+                    )
                 if info.get("self_signed"):
-                    alerts.append(MonitorAlert(
-                        company=company, type="cert", name=host,
-                        days_left=days,
-                        message=f"{host} uses self-signed certificate",
-                    ))
+                    alerts.append(
+                        MonitorAlert(
+                            company=company,
+                            type="cert",
+                            name=host,
+                            days_left=days,
+                            message=f"{host} uses self-signed certificate",
+                        )
+                    )
             except Exception:
                 pass
     return alerts

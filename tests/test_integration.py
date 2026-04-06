@@ -1,5 +1,4 @@
 import json
-import textwrap
 
 import yaml
 from click.testing import CliRunner

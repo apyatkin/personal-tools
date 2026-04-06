@@ -1,5 +1,5 @@
 import os
-from unittest.mock import patch, call, MagicMock
+from unittest.mock import patch, call
 
 from hat.modules.ssh import SSHModule
 
@@ -21,7 +21,9 @@ def test_ssh_activate_adds_file_keys():
 def test_ssh_activate_keychain_key():
     mod = SSHModule()
     config = {"keys": ["keychain:acme-sshkey"]}
-    secrets = {"keychain:acme-sshkey": "-----BEGIN OPENSSH PRIVATE KEY-----\nfake\n-----END OPENSSH PRIVATE KEY-----\n"}
+    secrets = {
+        "keychain:acme-sshkey": "-----BEGIN OPENSSH PRIVATE KEY-----\nfake\n-----END OPENSSH PRIVATE KEY-----\n"
+    }
     with patch("hat.modules.ssh.subprocess.run") as mock_run:
         mock_run.return_value.returncode = 0
         mod.activate(config, secrets)

@@ -22,13 +22,16 @@ class VPNModule(Module):
         if self._provider == "wireguard":
             result = subprocess.run(
                 ["sudo", find_binary("wg"), "show"],
-                capture_output=True, text=True, env=sudo_env(),
+                capture_output=True,
+                text=True,
+                env=sudo_env(),
             )
             return result.returncode == 0 and len(result.stdout.strip()) > 0
         elif self._provider == "tailscale":
             result = subprocess.run(
                 [find_binary("tailscale"), "status"],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
             return result.returncode == 0 and "stopped" not in result.stdout.lower()
         return False
@@ -42,7 +45,7 @@ class VPNModule(Module):
         self._interface = config.get("interface")
 
         if self._is_already_connected():
-            click.echo(f"    (already connected)")
+            click.echo("    (already connected)")
             return
 
         if self._config_path:
@@ -59,9 +62,7 @@ class VPNModule(Module):
         else:
             raise ValueError(f"Unknown VPN provider: {self._provider}")
 
-        click.confirm(
-            f"Will run: {' '.join(cmd)}\nProceed?", default=True, abort=True
-        )
+        click.confirm(f"Will run: {' '.join(cmd)}\nProceed?", default=True, abort=True)
         subprocess.run(cmd, check=True, env=sudo_env())
 
     def deactivate(self) -> None:

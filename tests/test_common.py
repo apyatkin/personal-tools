@@ -1,4 +1,9 @@
-from hat.common import generate_aliases, generate_completions, generate_tools_config, load_common_tools
+from hat.common import (
+    generate_aliases,
+    generate_completions,
+    generate_tools_config,
+    load_common_tools,
+)
 
 
 def test_generate_aliases(tmp_path):
@@ -13,7 +18,7 @@ def test_generate_aliases(tmp_path):
     assert 'alias kgpa="kubectl get pods -A"' in content
     assert 'alias ll="ls -la"' in content
     assert 'alias gcm="git commit -m"' in content
-    assert 'alias topcpu=' in content
+    assert "alias topcpu=" in content
 
 
 def test_generate_completions(tmp_path):

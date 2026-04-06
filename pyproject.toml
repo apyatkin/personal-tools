@@ -47,6 +47,10 @@ packages = ["src/hat"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 
+[tool.ruff.lint.per-file-ignores]
+"src/hat/cli.py" = ["E402"]
+"tests/*" = ["E402"]
+
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",

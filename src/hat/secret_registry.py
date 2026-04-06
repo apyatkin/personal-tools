@@ -1,4 +1,5 @@
 """Registry of hat-managed secrets. Tracks what hat has stored in Keychain/Bitwarden."""
+
 from __future__ import annotations
 
 import json

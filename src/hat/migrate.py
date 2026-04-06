@@ -36,9 +36,13 @@ def migrate_from_ctx() -> list[str]:
                         if config and "tools" in config:
                             del config["tools"]
                             config_file.write_text(
-                                yaml.dump(config, default_flow_style=False, sort_keys=False)
+                                yaml.dump(
+                                    config, default_flow_style=False, sort_keys=False
+                                )
                             )
-                            actions.append(f"  Removed 'tools' section from {company_dir.name}")
+                            actions.append(
+                                f"  Removed 'tools' section from {company_dir.name}"
+                            )
 
     # Copy global config
     old_config = old_dir / "config.yaml"

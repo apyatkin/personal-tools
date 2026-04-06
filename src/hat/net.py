@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import json
 import socket
 import ssl
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime
 
 
 def domain_info(domain: str) -> dict:
@@ -12,9 +11,7 @@ def domain_info(domain: str) -> dict:
     info = {"domain": domain}
 
     # WHOIS
-    result = subprocess.run(
-        ["whois", domain], capture_output=True, text=True
-    )
+    result = subprocess.run(["whois", domain], capture_output=True, text=True)
     info["whois_raw"] = result.stdout
 
     for line in result.stdout.splitlines():
@@ -32,7 +29,10 @@ def domain_info(domain: str) -> dict:
     # RDAP fallback for missing fields
     try:
         import httpx
-        resp = httpx.get(f"https://rdap.org/domain/{domain}", timeout=10, follow_redirects=True)
+
+        resp = httpx.get(
+            f"https://rdap.org/domain/{domain}", timeout=10, follow_redirects=True
+        )
         if resp.status_code == 200:
             rdap = resp.json()
             for event in rdap.get("events", []):
@@ -95,7 +95,9 @@ def _parse_der_cert(der: bytes, chain_error: str | None = None) -> dict:
     pem = ssl.DER_cert_to_PEM_cert(der)
     result = subprocess.run(
         ["openssl", "x509", "-text", "-noout"],
-        input=pem, capture_output=True, text=True,
+        input=pem,
+        capture_output=True,
+        text=True,
     )
     info = {}
     if chain_error:
@@ -104,9 +106,17 @@ def _parse_der_cert(der: bytes, chain_error: str | None = None) -> dict:
     for line in result.stdout.splitlines():
         line = line.strip()
         if line.startswith("Subject:"):
-            info["subject"] = line.split("CN=")[-1].split(",")[0].strip() if "CN=" in line else line.split(":", 1)[1].strip()
+            info["subject"] = (
+                line.split("CN=")[-1].split(",")[0].strip()
+                if "CN=" in line
+                else line.split(":", 1)[1].strip()
+            )
         elif line.startswith("Issuer:"):
-            info["issuer"] = line.split("CN=")[-1].split(",")[0].strip() if "CN=" in line else line.split(":", 1)[1].strip()
+            info["issuer"] = (
+                line.split("CN=")[-1].split(",")[0].strip()
+                if "CN=" in line
+                else line.split(":", 1)[1].strip()
+            )
             if "O=" in line:
                 info["issuer_org"] = line.split("O=")[-1].split(",")[0].strip()
         elif line.startswith("Not Before:"):
@@ -169,6 +179,7 @@ def _parse_cert(cert: dict, der: bytes, chain_error: str | None = None) -> dict:
 def ip_info(address: str) -> dict:
     """Get IP address info using ipinfo.io."""
     import httpx
+
     try:
         resp = httpx.get(f"https://ipinfo.io/{address}/json", timeout=10)
         data = resp.json()
@@ -192,9 +203,12 @@ def dns_lookup(domain: str) -> dict:
     for rtype in ["A", "AAAA", "MX", "NS", "CNAME", "TXT"]:
         result = subprocess.run(
             ["dig", "+short", domain, rtype],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
-        records = [line.strip() for line in result.stdout.strip().splitlines() if line.strip()]
+        records = [
+            line.strip() for line in result.stdout.strip().splitlines() if line.strip()
+        ]
         if records:
             results[rtype] = records
     return results
@@ -207,17 +221,21 @@ def net_check(host: str, ports: list[int] | None = None) -> dict:
     # Ping
     ping_result = subprocess.run(
         ["ping", "-c", "3", "-W", "2", host],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     results["ping"] = {
         "success": ping_result.returncode == 0,
-        "output": ping_result.stdout.strip().splitlines()[-2:] if ping_result.stdout else [],
+        "output": ping_result.stdout.strip().splitlines()[-2:]
+        if ping_result.stdout
+        else [],
     }
 
     # Traceroute (quick, max 15 hops)
     trace_result = subprocess.run(
         ["traceroute", "-m", "15", "-w", "2", host],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
         timeout=30,
     )
     results["traceroute"] = trace_result.stdout.strip().splitlines()[:15]

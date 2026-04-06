@@ -4,7 +4,6 @@ import json
 import shutil
 import subprocess
 import time
-from pathlib import Path
 
 import click
 
@@ -52,9 +51,15 @@ class ToolsModule(Module):
         now = time.time()
 
         brew_outdated: set[str] | None = None
-        tools_to_check = [t for t in brew_tools if shutil.which(_brew_bin_name(t)) and self._should_check(t, state, now)]
+        tools_to_check = [
+            t
+            for t in brew_tools
+            if shutil.which(_brew_bin_name(t)) and self._should_check(t, state, now)
+        ]
         if tools_to_check:
-            result = subprocess.run(["brew", "outdated", "--quiet"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["brew", "outdated", "--quiet"], capture_output=True, text=True
+            )
             brew_outdated = set(result.stdout.split())
 
         for tool in brew_tools:
@@ -78,7 +83,9 @@ class ToolsModule(Module):
         if parts:
             click.echo(f"Tools: {', '.join(parts)}")
 
-    def _ensure_brew(self, tool: str, state: dict, now: float, outdated: set[str] | None = None) -> None:
+    def _ensure_brew(
+        self, tool: str, state: dict, now: float, outdated: set[str] | None = None
+    ) -> None:
         bin_name = _brew_bin_name(tool)
         if shutil.which(bin_name) is None:
             click.echo(f"  installing {tool} (brew)...")
@@ -105,7 +112,8 @@ class ToolsModule(Module):
         elif self._should_check(tool, state, now):
             result = subprocess.run(
                 ["uv", "tool", "upgrade", tool],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
             if "already" not in result.stdout.lower():
                 self._updated.append(tool)
@@ -126,12 +134,14 @@ class ToolsModule(Module):
         elif self._should_check(tool, state, now):
             result = subprocess.run(
                 ["npm", "outdated", "-g", tool],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
             if result.stdout.strip():
                 subprocess.run(
                     ["npm", "update", "-g", tool],
-                    capture_output=True, text=True,
+                    capture_output=True,
+                    text=True,
                 )
                 self._updated.append(tool)
             else:

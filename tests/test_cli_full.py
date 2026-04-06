@@ -1,5 +1,4 @@
 import json
-import textwrap
 
 from click.testing import CliRunner
 
@@ -16,6 +15,7 @@ def _setup_company(tmp_path, name="acme"):
         "git": {"identity": {"name": "Alex", "email": "alex@acme.com"}},
     }
     import yaml
+
     (company_dir / "config.yaml").write_text(yaml.dump(config))
     return company_dir
 

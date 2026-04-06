@@ -33,6 +33,7 @@ class SSHModule(Module):
             key_data = secrets[ref]
         else:
             from hat.secrets import SecretResolver
+
             resolver = SecretResolver()
             key_data = resolver._resolve_one(ref)
 

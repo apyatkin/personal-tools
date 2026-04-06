@@ -8,6 +8,7 @@ from hat.utils import find_binary, sudo_env
 
 def _complete_company(ctx, param, incomplete):
     from hat.config import list_companies
+
     return [c for c in list_companies() if c.startswith(incomplete)]
 
 
@@ -25,10 +26,18 @@ def vpn_group():
 
 @vpn_group.command("config")
 @click.argument("company", shell_complete=_complete_company)
-@click.option("--provider", type=click.Choice(["wireguard", "amnezia", "tailscale"]), help="VPN provider")
-@click.option("--config-file", "config_path", default=None, help="Path to VPN config file")
+@click.option(
+    "--provider",
+    type=click.Choice(["wireguard", "amnezia", "tailscale"]),
+    help="VPN provider",
+)
+@click.option(
+    "--config-file", "config_path", default=None, help="Path to VPN config file"
+)
 @click.option("--interface", default=None, help="WireGuard interface name")
-def vpn_config(company: str, provider: str | None, config_path: str | None, interface: str | None):
+def vpn_config(
+    company: str, provider: str | None, config_path: str | None, interface: str | None
+):
     """Show or set VPN config for a company.
 
     \b
@@ -52,8 +61,13 @@ def vpn_config(company: str, provider: str | None, config_path: str | None, inte
         vpn["provider"] = provider
         changed = True
         # Set default config path for wireguard/amnezia if not explicitly provided
-        if provider in ("wireguard", "amnezia") and not config_path and not vpn.get("config"):
+        if (
+            provider in ("wireguard", "amnezia")
+            and not config_path
+            and not vpn.get("config")
+        ):
             from pathlib import Path
+
             default_path = str(Path.home() / "projects" / company / "wg0.conf")
             vpn["config"] = default_path
             click.echo(f"  Default config path: {default_path}")
@@ -71,6 +85,7 @@ def vpn_config(company: str, provider: str | None, config_path: str | None, inte
         if conf_path:
             import os
             from pathlib import Path
+
             p = Path(conf_path).expanduser()
             if p.exists():
                 os.chmod(p, 0o600)
@@ -101,17 +116,26 @@ def vpn_up(company: str, yes: bool):
 
     if not provider:
         click.echo(f"No VPN configured for {company}.")
-        click.echo(f"Set one: hat vpn config {company} --provider wireguard --config-file /path/to/wg.conf")
+        click.echo(
+            f"Set one: hat vpn config {company} --provider wireguard --config-file /path/to/wg.conf"
+        )
         return
 
     # Check if already connected
     if provider == "wireguard":
-        result = subprocess.run(["sudo", find_binary("wg"), "show"], capture_output=True, text=True, env=sudo_env())
+        result = subprocess.run(
+            ["sudo", find_binary("wg"), "show"],
+            capture_output=True,
+            text=True,
+            env=sudo_env(),
+        )
         if result.returncode == 0 and result.stdout.strip():
             click.echo(f"VPN already connected ({provider}).")
             return
     elif provider == "tailscale":
-        result = subprocess.run([find_binary("tailscale"), "status"], capture_output=True, text=True)
+        result = subprocess.run(
+            [find_binary("tailscale"), "status"], capture_output=True, text=True
+        )
         if result.returncode == 0 and "stopped" not in result.stdout.lower():
             click.echo(f"VPN already connected ({provider}).")
             return
@@ -119,6 +143,7 @@ def vpn_up(company: str, yes: bool):
     config_path = vpn.get("config")
 
     from pathlib import Path
+
     if config_path:
         p = Path(config_path).expanduser()
         if not p.exists():
@@ -127,12 +152,16 @@ def vpn_up(company: str, yes: bool):
 
     if provider == "wireguard":
         if not config_path:
-            click.echo("WireGuard requires --config-file. Set it: hat vpn config <company> --config-file /path")
+            click.echo(
+                "WireGuard requires --config-file. Set it: hat vpn config <company> --config-file /path"
+            )
             return
         cmd = ["sudo", find_binary("wg-quick"), "up", config_path]
     elif provider == "amnezia":
         if not config_path:
-            click.echo("Amnezia requires --config-file. Set it: hat vpn config <company> --config-file /path")
+            click.echo(
+                "Amnezia requires --config-file. Set it: hat vpn config <company> --config-file /path"
+            )
             return
         cmd = ["sudo", find_binary("amnezia-cli"), "connect", config_path]
     elif provider == "tailscale":
@@ -151,6 +180,7 @@ def vpn_up(company: str, yes: bool):
     click.echo(f"VPN connected ({provider}).")
 
     from hat.activity_log import log_event
+
     log_event("vpn-up", company, [provider])
 
 
@@ -189,11 +219,14 @@ def vpn_down(company: str, yes: bool):
     try:
         subprocess.run(cmd, check=True, env=sudo_env())
     except subprocess.CalledProcessError as e:
-        click.echo(click.style(f"VPN disconnect failed (exit {e.returncode})", fg="red"))
+        click.echo(
+            click.style(f"VPN disconnect failed (exit {e.returncode})", fg="red")
+        )
         return
     click.echo(f"VPN disconnected ({provider}).")
 
     from hat.activity_log import log_event
+
     log_event("vpn-down", company, [provider])
 
 
@@ -231,17 +264,26 @@ def vpn_status(company: str | None):
             # Try 'wg show' with no args — lists all active interfaces
             result = subprocess.run(
                 ["sudo", find_binary("wg"), "show"],
-                capture_output=True, text=True, env=sudo_env(),
+                capture_output=True,
+                text=True,
+                env=sudo_env(),
             )
             connected = result.returncode == 0 and len(result.stdout.strip()) > 0
         elif provider == "tailscale":
             result = subprocess.run(
                 [find_binary("tailscale"), "status"],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
-            connected = result.returncode == 0 and "stopped" not in result.stdout.lower()
+            connected = (
+                result.returncode == 0 and "stopped" not in result.stdout.lower()
+            )
         elif provider == "amnezia":
             connected = False  # no easy status check
 
-        status = click.style("connected", fg="green") if connected else click.style("disconnected", fg="red")
+        status = (
+            click.style("connected", fg="green")
+            if connected
+            else click.style("disconnected", fg="red")
+        )
         click.echo(f"  {name}: {provider} [{status}]")

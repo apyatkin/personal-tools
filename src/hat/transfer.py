@@ -1,4 +1,5 @@
 """Export/import company configs as encrypted archives."""
+
 from __future__ import annotations
 
 import tarfile

@@ -35,10 +35,14 @@ def test_config_set_cli(tmp_path, monkeypatch):
     monkeypatch.setenv("HAT_CONFIG_DIR", str(tmp_path))
     _setup_company(tmp_path)
     runner = CliRunner()
-    result = runner.invoke(main, ["config", "set", "acme", "cloud.nomad.addr", "https://nomad.acme.com"])
+    result = runner.invoke(
+        main, ["config", "set", "acme", "cloud.nomad.addr", "https://nomad.acme.com"]
+    )
     assert result.exit_code == 0
 
-    config = yaml.safe_load((tmp_path / "companies" / "acme" / "config.yaml").read_text())
+    config = yaml.safe_load(
+        (tmp_path / "companies" / "acme" / "config.yaml").read_text()
+    )
     assert config["cloud"]["nomad"]["addr"] == "https://nomad.acme.com"
 
 
@@ -51,10 +55,14 @@ def test_config_add_ssh_cli(tmp_path, monkeypatch):
     runner = CliRunner()
     with patch("subprocess.run") as mock_run:
         mock_run.return_value.returncode = 0
-        result = runner.invoke(main, ["config", "add-ssh", "acme", "acme-sshkey", "-f", str(key_file)])
+        result = runner.invoke(
+            main, ["config", "add-ssh", "acme", "acme-sshkey", "-f", str(key_file)]
+        )
     assert result.exit_code == 0
 
-    config = yaml.safe_load((tmp_path / "companies" / "acme" / "config.yaml").read_text())
+    config = yaml.safe_load(
+        (tmp_path / "companies" / "acme" / "config.yaml").read_text()
+    )
     assert "keychain:acme-sshkey" in config["ssh"]["keys"]
 
 
@@ -71,5 +79,7 @@ def test_config_add_ssh_appends(tmp_path, monkeypatch):
         runner.invoke(main, ["config", "add-ssh", "acme", "key1", "-f", str(key1)])
         runner.invoke(main, ["config", "add-ssh", "acme", "key2", "-f", str(key2)])
 
-    config = yaml.safe_load((tmp_path / "companies" / "acme" / "config.yaml").read_text())
+    config = yaml.safe_load(
+        (tmp_path / "companies" / "acme" / "config.yaml").read_text()
+    )
     assert config["ssh"]["keys"] == ["keychain:key1", "keychain:key2"]

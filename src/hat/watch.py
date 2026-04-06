@@ -1,15 +1,13 @@
 """Real-time status dashboard."""
+
 from __future__ import annotations
 
 import time
 import subprocess
-import shutil
-from pathlib import Path
 
 from rich.console import Console
 from rich.live import Live
 from rich.table import Table
-from rich.layout import Layout
 from rich.panel import Panel
 
 from hat.config import list_companies, load_company_config
@@ -40,22 +38,26 @@ def _build_dashboard() -> Table:
     # Status
     active = sm.active_company or "none"
     color = "green" if sm.active_company else "dim"
-    grid.add_row(Panel(
-        f"[bold]Active:[/bold] [{color}]{active}[/{color}]\n"
-        f"[bold]Modules:[/bold] {', '.join(sm.activated_modules) or 'none'}\n"
-        f"[bold]Since:[/bold] {(sm.activated_at or 'n/a')[:19]}",
-        title="[bold blue]hat status[/bold blue]",
-        border_style="blue",
-    ))
+    grid.add_row(
+        Panel(
+            f"[bold]Active:[/bold] [{color}]{active}[/{color}]\n"
+            f"[bold]Modules:[/bold] {', '.join(sm.activated_modules) or 'none'}\n"
+            f"[bold]Since:[/bold] {(sm.activated_at or 'n/a')[:19]}",
+            title="[bold blue]hat status[/bold blue]",
+            border_style="blue",
+        )
+    )
 
     # VPN status
     vpn_status = _check_vpn()
     vpn_color = "green" if vpn_status else "red"
-    grid.add_row(Panel(
-        f"VPN: [{vpn_color}]{'connected' if vpn_status else 'disconnected'}[/{vpn_color}]",
-        title="[bold blue]VPN[/bold blue]",
-        border_style="blue",
-    ))
+    grid.add_row(
+        Panel(
+            f"VPN: [{vpn_color}]{'connected' if vpn_status else 'disconnected'}[/{vpn_color}]",
+            title="[bold blue]VPN[/bold blue]",
+            border_style="blue",
+        )
+    )
 
     # Companies table
     companies = list_companies()
@@ -82,6 +84,7 @@ def _build_dashboard() -> Table:
 def _check_vpn() -> bool:
     result = subprocess.run(
         ["sudo", find_binary("wg"), "show"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     return result.returncode == 0 and bool(result.stdout.strip())

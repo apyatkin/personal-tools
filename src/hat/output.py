@@ -1,4 +1,5 @@
 """Consistent colored output helpers."""
+
 from __future__ import annotations
 
 import click

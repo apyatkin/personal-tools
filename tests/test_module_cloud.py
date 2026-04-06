@@ -1,4 +1,4 @@
-from unittest.mock import patch, call, MagicMock
+from unittest.mock import patch
 
 from hat.modules.cloud import CloudModule
 
@@ -42,7 +42,8 @@ def test_cloud_yandex_profile():
         mod.activate(config, secrets={})
     mock_run.assert_any_call(
         ["yc", "config", "profile", "activate", "acme"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
 
 
@@ -54,7 +55,8 @@ def test_cloud_digitalocean_context():
         mod.activate(config, secrets={})
     mock_run.assert_any_call(
         ["doctl", "auth", "switch", "--context", "acme"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
 
 
@@ -66,7 +68,8 @@ def test_cloud_aws_sso():
         mod.activate(config, secrets={})
     mock_run.assert_any_call(
         ["aws", "sso", "login", "--profile", "acme-prod"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
 
 

@@ -21,7 +21,10 @@ def send_notification(title: str, message: str):
     # Escape backslashes and quotes for AppleScript
     safe_title = title.replace("\\", "\\\\").replace('"', '\\"')
     safe_message = message.replace("\\", "\\\\").replace('"', '\\"')
-    subprocess.Popen([
-        "osascript", "-e",
-        f'display notification "{safe_message}" with title "{safe_title}"',
-    ])
+    subprocess.Popen(
+        [
+            "osascript",
+            "-e",
+            f'display notification "{safe_message}" with title "{safe_title}"',
+        ]
+    )

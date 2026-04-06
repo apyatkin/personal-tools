@@ -33,7 +33,8 @@ class DockerModule(Module):
         for host in self._hosts:
             subprocess.run(
                 ["docker", "logout", host],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
         self._hosts = []
 

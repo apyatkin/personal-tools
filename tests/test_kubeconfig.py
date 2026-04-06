@@ -9,17 +9,29 @@ def test_merge_kubeconfigs(tmp_path, monkeypatch):
     acme_dir = tmp_path / "companies" / "acme"
     acme_dir.mkdir(parents=True)
     kc_file = tmp_path / "acme-kubeconfig"
-    kc_file.write_text(yaml.dump({
-        "apiVersion": "v1",
-        "kind": "Config",
-        "clusters": [{"name": "prod", "cluster": {"server": "https://k8s.acme.com"}}],
-        "contexts": [{"name": "prod", "context": {"cluster": "prod", "user": "admin"}}],
-        "users": [{"name": "admin", "user": {"token": "abc"}}],
-    }))
-    (acme_dir / "config.yaml").write_text(yaml.dump({
-        "name": "acme",
-        "cloud": {"kubernetes": {"kubeconfig": str(kc_file)}},
-    }))
+    kc_file.write_text(
+        yaml.dump(
+            {
+                "apiVersion": "v1",
+                "kind": "Config",
+                "clusters": [
+                    {"name": "prod", "cluster": {"server": "https://k8s.acme.com"}}
+                ],
+                "contexts": [
+                    {"name": "prod", "context": {"cluster": "prod", "user": "admin"}}
+                ],
+                "users": [{"name": "admin", "user": {"token": "abc"}}],
+            }
+        )
+    )
+    (acme_dir / "config.yaml").write_text(
+        yaml.dump(
+            {
+                "name": "acme",
+                "cloud": {"kubernetes": {"kubeconfig": str(kc_file)}},
+            }
+        )
+    )
 
     path = merge_kubeconfigs(["acme"])
     merged = yaml.safe_load(path.read_text())

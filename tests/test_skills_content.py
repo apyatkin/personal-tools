@@ -49,7 +49,11 @@ def test_skill_has_required_sections(skill_name):
     skill_file = SKILLS_DIR / skill_name / "SKILL.md"
     content = skill_file.read_text()
 
-    assert "## Company Context" in content, f"{skill_name}: missing Company Context section"
+    assert "## Company Context" in content, (
+        f"{skill_name}: missing Company Context section"
+    )
     assert "## Commands" in content, f"{skill_name}: missing Commands section"
     assert "## Runbooks" in content, f"{skill_name}: missing Runbooks section"
-    assert "active_company" in content, f"{skill_name}: missing ctx config reading instructions"
+    assert "active_company" in content, (
+        f"{skill_name}: missing ctx config reading instructions"
+    )

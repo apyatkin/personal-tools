@@ -7,10 +7,13 @@ from pathlib import Path
 def _collect_config_secrets(config: dict) -> list[str]:
     """Collect all secret refs from a config — *_ref fields + keychain: entries in ssh.keys."""
     from hat.secrets import SecretResolver
+
     resolver = SecretResolver()
     refs = resolver._find_refs(config)
     for key in config.get("ssh", {}).get("keys", []):
-        if isinstance(key, str) and (key.startswith("keychain:") or key.startswith("bitwarden:")):
+        if isinstance(key, str) and (
+            key.startswith("keychain:") or key.startswith("bitwarden:")
+        ):
             refs.append(key)
     return refs
 
@@ -19,6 +22,7 @@ def _all_known_refs() -> list[str]:
     """All known secret refs — from registry + company configs."""
     from hat.secret_registry import load as load_registry
     from hat.config import list_companies, load_company_config
+
     refs = set(load_registry())
     for company in list_companies():
         try:
@@ -53,7 +57,13 @@ def secret_group():
 
 @secret_group.command("set")
 @click.argument("ref", shell_complete=_complete_ref)
-@click.option("--file", "-f", "file_path", type=click.Path(exists=True), help="Read value from file")
+@click.option(
+    "--file",
+    "-f",
+    "file_path",
+    type=click.Path(exists=True),
+    help="Read value from file",
+)
 def secret_set(ref: str, file_path: str | None):
     """Store a secret in macOS Keychain.
 
@@ -78,6 +88,7 @@ def secret_set(ref: str, file_path: str | None):
     from hat.secret_registry import register
     import base64
     import subprocess
+
     backend, path = parse_secret_ref(ref)
 
     if file_path:
@@ -85,13 +96,23 @@ def secret_set(ref: str, file_path: str | None):
     else:
         click.echo("Enter secret value (paste multiline, then Ctrl-D when done):")
         import sys
+
         value = sys.stdin.read()
 
     if backend == "keychain":
         encoded = base64.b64encode(value.encode()).decode()
         subprocess.run(
-            ["security", "add-generic-password", "-s", path, "-a", path,
-             "-w", encoded, "-U"],
+            [
+                "security",
+                "add-generic-password",
+                "-s",
+                path,
+                "-a",
+                path,
+                "-w",
+                encoded,
+                "-U",
+            ],
             check=True,
         )
         register(ref)
@@ -112,9 +133,12 @@ def secret_get(ref: str):
     """
     from hat.secrets import SecretResolver
     from hat.activity_log import log_event
+
     resolver = SecretResolver()
     value = resolver._resolve_one(ref)
-    log_event("secret-get", "keychain" if ref.startswith("keychain:") else "bitwarden", [ref])
+    log_event(
+        "secret-get", "keychain" if ref.startswith("keychain:") else "bitwarden", [ref]
+    )
     click.echo(value)
 
 
@@ -190,7 +214,7 @@ def secret_list(company: str | None, check: bool):
         config_refs.update(refs)
     orphans = sorted(set(registry) - config_refs)
     if orphans:
-        click.echo(f"\n  (not assigned to a company):")
+        click.echo("\n  (not assigned to a company):")
         for ref in orphans:
             _print_ref(ref, check, resolver)
 
@@ -207,12 +231,14 @@ def secret_delete(ref: str):
     from hat.secrets import parse_secret_ref
     from hat.secret_registry import unregister
     import subprocess
+
     backend, path = parse_secret_ref(ref)
 
     if backend == "keychain":
         result = subprocess.run(
             ["security", "delete-generic-password", "-s", path],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         if result.returncode == 0:
             click.echo(f"Deleted from keychain: {path}")

@@ -6,7 +6,13 @@ from pathlib import Path
 
 from hat.config import get_config_dir
 
-EXCLUDE_PATTERNS = {"state.json", "state.env", "tools_state.json", "log.json", "tunnel_pids.json"}
+EXCLUDE_PATTERNS = {
+    "state.json",
+    "state.env",
+    "tools_state.json",
+    "log.json",
+    "tunnel_pids.json",
+}
 
 
 def create_backup(output_dir: Path | None = None) -> Path:

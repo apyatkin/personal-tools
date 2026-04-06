@@ -9,8 +9,10 @@ def test_dns_activate(tmp_path):
         "resolvers": ["10.0.0.53", "10.0.0.54"],
         "search_domains": ["acme.internal"],
     }
-    with patch("hat.modules.dns.RESOLVER_DIR", tmp_path), \
-         patch("hat.modules.dns.click.confirm"):
+    with (
+        patch("hat.modules.dns.RESOLVER_DIR", tmp_path),
+        patch("hat.modules.dns.click.confirm"),
+    ):
         mod.activate(config, secrets={})
 
     resolver_file = tmp_path / "acme.internal"
@@ -26,8 +28,10 @@ def test_dns_deactivate(tmp_path):
         "resolvers": ["10.0.0.53"],
         "search_domains": ["acme.internal", "acme.corp"],
     }
-    with patch("hat.modules.dns.RESOLVER_DIR", tmp_path), \
-         patch("hat.modules.dns.click.confirm"):
+    with (
+        patch("hat.modules.dns.RESOLVER_DIR", tmp_path),
+        patch("hat.modules.dns.click.confirm"),
+    ):
         mod.activate(config, secrets={})
         mod.deactivate()
 
