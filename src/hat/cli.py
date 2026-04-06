@@ -246,64 +246,6 @@ def shell_cmd(company: str):
     os.execve(shell, [shell], env)
 
 
-@main.command("ssh")
-@click.argument("company", shell_complete=_complete_company)
-@click.argument("host")
-@click.option("-u", "--user", default=None, help="SSH user")
-def ssh_cmd(company: str, host: str, user: str | None):
-    """SSH into a host through company's jump host.
-
-    HOST can be a named host from config (e.g. 'bastion') or a raw address.
-    """
-    import os
-    import tempfile
-
-    config = load_company_config(company)
-    ssh_config = config.get("ssh", {})
-
-    # Check if host is a named host
-    hosts = ssh_config.get("hosts", {})
-    host_entry = hosts.get(host)
-    if host_entry:
-        target = host_entry["address"]
-        if not user:
-            user = host_entry.get("user")
-    else:
-        target = host
-
-    cmd = ["ssh"]
-
-    # Jump host
-    jump_host = ssh_config.get("jump_host")
-    if jump_host:
-        jump_user = ssh_config.get("jump_user")
-        jump = f"{jump_user}@{jump_host}" if jump_user else jump_host
-        cmd.extend(["-J", jump])
-
-    # SSH key — from host entry or jump config
-    key_ref = None
-    if host_entry and host_entry.get("key_ref"):
-        key_ref = host_entry["key_ref"]
-    elif ssh_config.get("jump_key_ref"):
-        key_ref = ssh_config["jump_key_ref"]
-
-    if key_ref:
-        resolver = SecretResolver()
-        secrets = resolver.resolve_refs(config)
-        key_data = secrets.get(key_ref) or resolver._resolve_one(key_ref)
-        fd, key_path = tempfile.mkstemp(prefix="hat-ssh-", suffix=".key")
-        os.write(fd, key_data.encode())
-        os.close(fd)
-        os.chmod(key_path, 0o600)
-        cmd.extend(["-i", key_path])
-
-    if user:
-        cmd.extend(["-l", user])
-    cmd.append(target)
-
-    from hat.activity_log import log_event
-    log_event("ssh", company, [host])
-    os.execvp("ssh", cmd)
 
 
 @main.command()
@@ -476,6 +418,7 @@ from hat.cli_secret import secret_group
 from hat.cli_config import config_group
 from hat.cli_tools import tools_group, aliases, completions, skills
 from hat.cli_net import net_group
+from hat.cli_ssh import ssh_group
 
 main.add_command(repos)
 main.add_command(secret_group)
@@ -485,3 +428,4 @@ main.add_command(aliases)
 main.add_command(completions)
 main.add_command(skills)
 main.add_command(net_group)
+main.add_command(ssh_group)
