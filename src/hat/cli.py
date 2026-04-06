@@ -511,6 +511,61 @@ def setup():
     click.echo("    hat skills deploy        deploy Claude Code skills")
 
 
+@main.command()
+@click.argument("company", required=False, shell_complete=_complete_company)
+def sync(company: str | None):
+    """Morning sync — install tools, sync repos, scan secrets."""
+    from hat.common import load_common_tools
+    from hat.modules.tools import ToolsModule
+
+    # Tools
+    click.echo("Tools...")
+    tools = load_common_tools()
+    if tools:
+        mod = ToolsModule()
+        mod.activate(tools, secrets={})
+
+    # Repos
+    companies = [company] if company else list_companies()
+    for name in companies:
+        try:
+            config = load_company_config(name)
+            sources = config.get("git", {}).get("sources", [])
+            if sources:
+                click.echo(f"\nRepos ({name})...")
+                from hat.repos import sync_repos
+                from hat.secrets import SecretResolver
+                resolver = SecretResolver()
+                secrets = resolver.resolve_refs(config)
+                identity = config.get("git", {}).get("identity")
+                results = sync_repos(name, sources, secrets, identity)
+                cloned = len([r for r in results["clone"] if r["status"] == "cloned"])
+                pulled = len([r for r in results["pull"] if r["status"] == "updated"])
+                click.echo(f"  {cloned} cloned, {pulled} pulled")
+        except Exception as e:
+            click.echo(f"  {name}: {e}")
+
+    # Secrets
+    click.echo("\nSecrets...")
+    from hat.cli_secret import _collect_config_secrets
+    from hat.secret_registry import register
+    from hat.secrets import SecretResolver
+    resolver = SecretResolver()
+    for name in companies:
+        try:
+            config = load_company_config(name)
+            for ref in _collect_config_secrets(config):
+                try:
+                    resolver._resolve_one(ref)
+                    register(ref)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    click.echo("\nSync complete.")
+
+
 from hat.cli_repos import repos
 from hat.cli_secret import secret_group
 from hat.cli_config import config_group
