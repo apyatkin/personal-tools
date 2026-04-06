@@ -71,12 +71,14 @@ class ToolsModule(Module):
 
     def _ensure_brew(self, tool: str, state: dict, now: float, outdated: set[str] | None = None) -> None:
         if shutil.which(tool) is None:
-            subprocess.run(["brew", "install", tool], capture_output=True, text=True)
+            click.echo(f"  installing {tool} (brew)...")
+            subprocess.run(["brew", "install", tool])
             self._installed.append(tool)
             state[tool] = now
         elif self._should_check(tool, state, now) and outdated is not None:
             if tool in outdated:
-                subprocess.run(["brew", "upgrade", tool], capture_output=True, text=True)
+                click.echo(f"  upgrading {tool} (brew)...")
+                subprocess.run(["brew", "upgrade", tool])
                 self._updated.append(tool)
             else:
                 self._already_ok.append(tool)
@@ -86,10 +88,8 @@ class ToolsModule(Module):
 
     def _ensure_pipx(self, tool: str, state: dict, now: float) -> None:
         if shutil.which(tool) is None:
-            subprocess.run(
-                ["uv", "tool", "install", tool],
-                capture_output=True, text=True,
-            )
+            click.echo(f"  installing {tool} (pipx)...")
+            subprocess.run(["uv", "tool", "install", tool])
             self._installed.append(tool)
             state[tool] = now
         elif self._should_check(tool, state, now):
@@ -109,10 +109,8 @@ class ToolsModule(Module):
         # npm packages like @bitwarden/cli install as 'bw'
         bin_name = _npm_bin_name(tool)
         if shutil.which(bin_name) is None:
-            subprocess.run(
-                ["npm", "install", "-g", tool],
-                capture_output=True, text=True,
-            )
+            click.echo(f"  installing {tool} (npm)...")
+            subprocess.run(["npm", "install", "-g", tool])
             self._installed.append(tool)
             state[tool] = now
         elif self._should_check(tool, state, now):
