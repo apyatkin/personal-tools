@@ -60,6 +60,9 @@ def config_add_ssh(company: str, keychain_name: str, file_path: str | None, exis
         )
         click.echo(f"Stored in keychain: {keychain_name}")
 
+    from hat.secret_registry import register
+    register(f"keychain:{keychain_name}")
+
     config = load_company_config(company)
     set_nested(config, "ssh.keys[+]", f"keychain:{keychain_name}")
     save_company_config(company, config)
@@ -96,6 +99,9 @@ def config_add_secret(company: str, config_path: str, keychain_name: str, file_p
          "-w", encoded, "-U"],
         check=True,
     )
+
+    from hat.secret_registry import register
+    register(f"keychain:{keychain_name}")
 
     config = load_company_config(company)
     set_nested(config, config_path, f"keychain:{keychain_name}")
