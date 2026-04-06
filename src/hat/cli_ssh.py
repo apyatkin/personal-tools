@@ -117,6 +117,7 @@ def ssh_connect(company: str, host: str, user: str | None, port: int | None, key
 
 def _show_hosts_for_company(company: str) -> bool:
     """Show SSH hosts for a company. Returns True if any hosts found."""
+    from hat.output import header, item
     config = load_company_config(company)
     ssh_config = config.get("ssh", {})
 
@@ -135,9 +136,9 @@ def _show_hosts_for_company(company: str) -> bool:
     if not hosts:
         return False
 
-    click.echo(f"\n  {company}:")
+    header(company)
     if defaults:
-        click.echo(f"    defaults: {', '.join(defaults)}")
+        item("defaults", ", ".join(defaults))
     for name, entry in sorted(hosts.items()):
         addr = entry.get("address", "?")
         parts = [addr]
@@ -147,7 +148,7 @@ def _show_hosts_for_company(company: str) -> bool:
             parts.append(f"port={entry['port']}")
         if entry.get("key_ref"):
             parts.append(f"key={entry['key_ref']}")
-        click.echo(f"    {name:20s} {' '.join(parts)}")
+        item(name, " ".join(parts))
     return True
 
 
