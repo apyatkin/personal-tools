@@ -243,28 +243,46 @@ def shell_cmd(company: str):
 @click.argument("host")
 @click.option("-u", "--user", default=None, help="SSH user")
 def ssh_cmd(company: str, host: str, user: str | None):
-    """SSH into a host through company's jump host."""
+    """SSH into a host through company's jump host.
+
+    HOST can be a named host from config (e.g. 'bastion') or a raw address.
+    """
     import os
     import tempfile
 
     config = load_company_config(company)
     ssh_config = config.get("ssh", {})
-    jump_host = ssh_config.get("jump_host")
 
-    if not jump_host:
-        click.echo(f"No jump_host configured for {company}.")
-        return
+    # Check if host is a named host
+    hosts = ssh_config.get("hosts", {})
+    host_entry = hosts.get(host)
+    if host_entry:
+        target = host_entry["address"]
+        if not user:
+            user = host_entry.get("user")
+    else:
+        target = host
 
     cmd = ["ssh"]
-    jump_user = ssh_config.get("jump_user")
-    jump = f"{jump_user}@{jump_host}" if jump_user else jump_host
-    cmd.extend(["-J", jump])
 
-    jump_key_ref = ssh_config.get("jump_key_ref")
-    if jump_key_ref:
+    # Jump host
+    jump_host = ssh_config.get("jump_host")
+    if jump_host:
+        jump_user = ssh_config.get("jump_user")
+        jump = f"{jump_user}@{jump_host}" if jump_user else jump_host
+        cmd.extend(["-J", jump])
+
+    # SSH key — from host entry or jump config
+    key_ref = None
+    if host_entry and host_entry.get("key_ref"):
+        key_ref = host_entry["key_ref"]
+    elif ssh_config.get("jump_key_ref"):
+        key_ref = ssh_config["jump_key_ref"]
+
+    if key_ref:
         resolver = SecretResolver()
         secrets = resolver.resolve_refs(config)
-        key_data = secrets.get(jump_key_ref) or resolver._resolve_one(jump_key_ref)
+        key_data = secrets.get(key_ref) or resolver._resolve_one(key_ref)
         fd, key_path = tempfile.mkstemp(prefix="hat-ssh-", suffix=".key")
         os.write(fd, key_data.encode())
         os.close(fd)
@@ -273,7 +291,8 @@ def ssh_cmd(company: str, host: str, user: str | None):
 
     if user:
         cmd.extend(["-l", user])
-    cmd.append(host)
+    cmd.append(target)
+
     os.execvp("ssh", cmd)
 
 

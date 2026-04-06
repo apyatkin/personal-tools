@@ -111,3 +111,35 @@ def config_validate(company: str):
     for e in errors:
         icon = click.style("ERR", fg="red") if e.level == "error" else click.style("WARN", fg="yellow")
         click.echo(f"  [{icon}] {e.path}: {e.message}")
+
+
+@config_group.command("add-host")
+@click.argument("company")
+@click.argument("name")
+@click.argument("address")
+@click.option("-u", "--user", default=None, help="SSH user")
+@click.option("-k", "--key", "key_ref", default=None, help="Keychain ref for SSH key (e.g. acme-db-key)")
+def config_add_host(company: str, name: str, address: str, user: str | None, key_ref: str | None):
+    """Add an SSH host to company config.
+
+    Examples:
+
+      hat config add-host acme bastion 10.0.1.1 -u deploy
+      hat config add-host acme db db.internal -u postgres -k acme-db-key
+    """
+    from hat.config import load_company_config, save_company_config
+    config = load_company_config(company)
+    if "ssh" not in config:
+        config["ssh"] = {}
+    if "hosts" not in config["ssh"]:
+        config["ssh"]["hosts"] = {}
+
+    host_entry = {"address": address}
+    if user:
+        host_entry["user"] = user
+    if key_ref:
+        host_entry["key_ref"] = f"keychain:{key_ref}"
+
+    config["ssh"]["hosts"][name] = host_entry
+    save_company_config(company, config)
+    click.echo(f"{company}: added host '{name}' ({address})")
