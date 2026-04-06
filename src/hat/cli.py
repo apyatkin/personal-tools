@@ -177,6 +177,54 @@ def shell_init(shell: str):
     click.echo(generate_shell_init(shell))
 
 
+@main.command("run")
+@click.argument("company")
+@click.argument("command", nargs=-1, type=click.UNPROCESSED)
+def run_cmd(company: str, command: tuple[str, ...]):
+    """Run a command in a company's environment without switching context."""
+    import os
+    import subprocess
+    from hat.env_builder import build_company_env
+
+    if not command:
+        click.echo("No command specified. Usage: hat run <company> -- <command>")
+        return
+
+    env = {**os.environ, **build_company_env(company)}
+    result = subprocess.run(list(command), env=env)
+    raise SystemExit(result.returncode)
+
+
+@main.command("env")
+@click.argument("company")
+@click.option("--export", "export_format", is_flag=True, help="Output in export format")
+def env_cmd(company: str, export_format: bool):
+    """Show env vars that would be set for a company (dry run)."""
+    from hat.env_builder import build_company_env
+    env = build_company_env(company)
+    if not env:
+        click.echo("No env vars configured.")
+        return
+    for k, v in sorted(env.items()):
+        if export_format:
+            click.echo(f'export {k}="{v}"')
+        else:
+            click.echo(f"{k}={v}")
+
+
+@main.command("shell")
+@click.argument("company")
+def shell_cmd(company: str):
+    """Spawn a new shell with a company's environment."""
+    import os
+    from hat.env_builder import build_company_env
+    env = {**os.environ, **build_company_env(company)}
+    env["HAT_ACTIVE"] = company
+    shell = os.environ.get("SHELL", "/bin/zsh")
+    click.echo(f"Entering {company} shell. Type 'exit' to leave.")
+    os.execve(shell, [shell], env)
+
+
 # --- Repos subgroup ---
 
 @main.group()
