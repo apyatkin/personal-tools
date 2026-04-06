@@ -143,6 +143,28 @@ browser:
 apps:
   slack:
     workspace: acme-corp
+
+tools:
+  brew:
+    - kubectl
+    - helm
+    - terraform
+    - nomad
+    - consul
+    - vault
+    - yc
+    - doctl
+    - hcloud
+    - gh
+    - glab
+    - jq
+    - wireguard-tools
+    - docker
+  pipx:                        # installed into isolated venvs via uv tool / pipx
+    - ansible
+    - ansible-lint
+    - yamllint
+    - ruff
 ```
 
 ## Module Architecture
@@ -161,6 +183,7 @@ class Module:
 
 | Order | Module    | Activate                                                                 | Deactivate                          |
 |-------|-----------|--------------------------------------------------------------------------|-------------------------------------|
+| 0     | tools     | Check/install/update required tools via brew and uv tool                | No-op                               |
 | 1     | secrets   | Connect to Keychain/Bitwarden, resolve all `*_ref` values               | Clear cached secrets from memory    |
 | 2     | vpn       | `wg-quick up`, `amnezia-cli connect`, or `tailscale up`                 | Disconnect                          |
 | 3     | dns       | Write `/etc/resolver/<domain>` files (macOS)                            | Remove resolver files               |
@@ -188,6 +211,37 @@ Modules that need `sudo` (vpn, dns, hosts) display the exact commands they will 
   "activated_modules": ["secrets", "vpn", "dns", "hosts", "ssh", "git", "cloud", "env", "docker"],
   "activated_at": "2026-04-06T14:30:00Z"
 }
+```
+
+## Tool Management
+
+The `tools` module runs first on every `ctx use` and ensures all required CLI tools are installed and up to date.
+
+### Two install methods
+
+| Method | For | How |
+|--------|-----|-----|
+| `brew` | Native CLI tools (kubectl, helm, terraform, nomad, vault, etc.) | `brew install <pkg>` / `brew upgrade <pkg>` |
+| `pipx` | Python tools (ansible, ansible-lint, yamllint, ruff, etc.) | `uv tool install <pkg>` / `uv tool upgrade <pkg>` |
+
+`pipx` entries use `uv tool` under the hood — each tool gets its own isolated venv, so there are no dependency conflicts between tools or with the system Python.
+
+### Behavior on `ctx use`
+
+1. Collect all tools from the company's `tools.brew` and `tools.pipx` lists
+2. For each tool, check if it's installed (`which <binary>`)
+3. **Missing tools:** install them (`brew install` or `uv tool install`)
+4. **Installed tools:** check for updates (`brew outdated`, `uv tool upgrade --dry-run`) and upgrade if available
+5. Report summary: installed N, updated N, already up to date N
+
+### Update frequency
+
+To avoid slowing down every switch, update checks are throttled — at most once per 24 hours per tool. Last-checked timestamps are stored in `~/.config/ctx/tools_state.json`. Force a full check with `ctx use <company> --check-tools`.
+
+### Standalone command
+
+```
+ctx tools check <company>   # check + install/update without full context switch
 ```
 
 ## Secret Resolution
@@ -305,6 +359,7 @@ personal-tools/
       repos.py            # clone/pull/list logic
       modules/
         __init__.py       # Module base class, registry, ordering
+        tools.py
         vpn.py
         dns.py
         hosts.py
