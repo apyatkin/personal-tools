@@ -419,6 +419,7 @@ from hat.cli_config import config_group
 from hat.cli_tools import tools_group, aliases, completions, skills
 from hat.cli_net import net_group
 from hat.cli_ssh import ssh_group
+from hat.cli_vpn import vpn_group
 
 main.add_command(repos)
 main.add_command(secret_group)
@@ -429,3 +430,4 @@ main.add_command(completions)
 main.add_command(skills)
 main.add_command(net_group)
 main.add_command(ssh_group)
+main.add_command(vpn_group)
