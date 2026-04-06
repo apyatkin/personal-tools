@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import click
+from pathlib import Path
 
 from hat.config import load_company_config, save_company_config, set_nested
 
@@ -46,7 +47,7 @@ def config_add_ssh(company: str, keychain_name: str, file_path: str | None, exis
         import subprocess
 
         if file_path:
-            value = open(file_path).read()
+            value = Path(file_path).read_text()
         else:
             click.echo("Paste SSH private key (Ctrl-D when done):")
             import sys
@@ -87,7 +88,7 @@ def config_add_secret(company: str, config_path: str, keychain_name: str, file_p
     import subprocess
 
     if file_path:
-        value = open(file_path).read()
+        value = Path(file_path).read_text()
     else:
         click.echo("Enter secret value (paste multiline, then Ctrl-D when done):")
         import sys

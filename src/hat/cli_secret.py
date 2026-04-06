@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import click
+from pathlib import Path
 
 
 def _collect_config_secrets(config: dict) -> list[str]:
@@ -80,7 +81,7 @@ def secret_set(ref: str, file_path: str | None):
     backend, path = parse_secret_ref(ref)
 
     if file_path:
-        value = open(file_path).read()
+        value = Path(file_path).read_text()
     else:
         click.echo("Enter secret value (paste multiline, then Ctrl-D when done):")
         import sys
