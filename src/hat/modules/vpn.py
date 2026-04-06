@@ -1,10 +1,23 @@
 from __future__ import annotations
 
+import os
+import shutil
 import subprocess
 
 import click
 
 from hat.modules import Module, ModuleStatus
+
+
+def _find_binary(name: str) -> str:
+    path = shutil.which(name)
+    if path:
+        return path
+    for prefix in ["/opt/homebrew/bin", "/usr/local/bin"]:
+        candidate = f"{prefix}/{name}"
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return name
 
 
 class VPNModule(Module):
@@ -25,11 +38,11 @@ class VPNModule(Module):
         self._interface = config.get("interface")
 
         if self._provider == "wireguard":
-            cmd = ["sudo", "wg-quick", "up", self._config_path]
+            cmd = ["sudo", _find_binary("wg-quick"), "up", self._config_path]
         elif self._provider == "amnezia":
-            cmd = ["sudo", "amnezia-cli", "connect", self._config_path]
+            cmd = ["sudo", _find_binary("amnezia-cli"), "connect", self._config_path]
         elif self._provider == "tailscale":
-            cmd = ["sudo", "tailscale", "up"]
+            cmd = ["sudo", _find_binary("tailscale"), "up"]
         else:
             raise ValueError(f"Unknown VPN provider: {self._provider}")
 
@@ -44,11 +57,11 @@ class VPNModule(Module):
 
         if self._provider == "wireguard":
             interface = self._interface or self._config_path
-            cmd = ["sudo", "wg-quick", "down", interface]
+            cmd = ["sudo", _find_binary("wg-quick"), "down", interface]
         elif self._provider == "amnezia":
-            cmd = ["sudo", "amnezia-cli", "disconnect"]
+            cmd = ["sudo", _find_binary("amnezia-cli"), "disconnect"]
         elif self._provider == "tailscale":
-            cmd = ["sudo", "tailscale", "down"]
+            cmd = ["sudo", _find_binary("tailscale"), "down"]
         else:
             return
 

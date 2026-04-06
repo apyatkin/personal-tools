@@ -2,7 +2,23 @@ from __future__ import annotations
 
 import click
 
+import shutil
+
 from hat.config import load_company_config, save_company_config
+
+
+def _find_binary(name: str) -> str:
+    """Find full path of a binary. sudo uses restricted PATH, so we need absolute paths."""
+    path = shutil.which(name)
+    if path:
+        return path
+    # Common Homebrew locations
+    for prefix in ["/opt/homebrew/bin", "/usr/local/bin"]:
+        candidate = f"{prefix}/{name}"
+        import os
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return name  # fallback to bare name
 
 
 def _complete_company(ctx, param, incomplete):
@@ -99,20 +115,24 @@ def vpn_up(company: str):
         if not config_path:
             click.echo("WireGuard requires --config-file. Set it: hat vpn config <company> --config-file /path")
             return
-        cmd = ["sudo", "wg-quick", "up", config_path]
+        cmd = ["sudo", _find_binary("wg-quick"), "up", config_path]
     elif provider == "amnezia":
         if not config_path:
             click.echo("Amnezia requires --config-file. Set it: hat vpn config <company> --config-file /path")
             return
-        cmd = ["sudo", "amnezia-cli", "connect", config_path]
+        cmd = ["sudo", _find_binary("amnezia-cli"), "connect", config_path]
     elif provider == "tailscale":
-        cmd = ["sudo", "tailscale", "up"]
+        cmd = ["sudo", _find_binary("tailscale"), "up"]
     else:
         click.echo(f"Unknown provider: {provider}")
         return
 
     click.confirm(f"Will run: {' '.join(cmd)}\nProceed?", default=True, abort=True)
-    subprocess.run(cmd, check=True)
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        click.echo(click.style(f"VPN connect failed (exit {e.returncode})", fg="red"))
+        return
     click.echo(f"VPN connected ({provider}).")
 
     from hat.activity_log import log_event
@@ -140,16 +160,20 @@ def vpn_down(company: str):
 
     if provider == "wireguard":
         interface = vpn.get("interface") or vpn.get("config")
-        cmd = ["sudo", "wg-quick", "down", interface]
+        cmd = ["sudo", _find_binary("wg-quick"), "down", interface]
     elif provider == "amnezia":
-        cmd = ["sudo", "amnezia-cli", "disconnect"]
+        cmd = ["sudo", _find_binary("amnezia-cli"), "disconnect"]
     elif provider == "tailscale":
-        cmd = ["sudo", "tailscale", "down"]
+        cmd = ["sudo", _find_binary("tailscale"), "down"]
     else:
         click.echo(f"Unknown provider: {provider}")
         return
 
-    subprocess.run(cmd, check=True)
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        click.echo(click.style(f"VPN disconnect failed (exit {e.returncode})", fg="red"))
+        return
     click.echo(f"VPN disconnected ({provider}).")
 
     from hat.activity_log import log_event
@@ -189,13 +213,13 @@ def vpn_status(company: str | None):
         if provider == "wireguard":
             interface = vpn.get("interface", "")
             result = subprocess.run(
-                ["sudo", "wg", "show", interface],
+                ["sudo", _find_binary("wg"), "show", interface],
                 capture_output=True, text=True,
             )
             connected = result.returncode == 0
         elif provider == "tailscale":
             result = subprocess.run(
-                ["tailscale", "status"],
+                [_find_binary("tailscale"), "status"],
                 capture_output=True, text=True,
             )
             connected = result.returncode == 0 and "stopped" not in result.stdout.lower()
