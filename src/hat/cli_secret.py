@@ -107,29 +107,25 @@ def secret_get(ref: str):
 
 @secret_group.command("list")
 @click.option("--company", default=None, help="Filter by company")
-@click.option("--keychain", "show_keychain", is_flag=True, help="List all hat-* secrets in macOS Keychain")
-def secret_list(company: str | None, show_keychain: bool):
-    """List secrets — from company configs and/or macOS Keychain.
+@click.option("--check", is_flag=True, help="Verify each secret is accessible")
+def secret_list(company: str | None, check: bool):
+    """List secrets referenced in company configs.
 
-    \b
-    By default, shows secrets referenced in company configs (*_ref fields).
-    Use --keychain to list all hat-related secrets stored in macOS Keychain.
+    Shows every *_ref field found in company configs, grouped by company.
+    Use --check to verify each secret is actually accessible in Keychain/Bitwarden.
 
     \b
     Examples:
-      hat secret list                  refs from all companies
-      hat secret list --company acme   refs for one company
-      hat secret list --keychain       all secrets in Keychain
+      hat secret list                  all companies
+      hat secret list --company acme   just acme
+      hat secret list --check          verify accessibility
     """
     from hat.config import list_companies, load_company_config
     from hat.secrets import SecretResolver
-    import subprocess
 
-    found = False
-
-    # Show config refs
     companies = [company] if company else list_companies()
     resolver = SecretResolver()
+    found = False
 
     for name in companies:
         try:
@@ -139,29 +135,21 @@ def secret_list(company: str | None, show_keychain: bool):
         refs = resolver._find_refs(config)
         if refs:
             found = True
-            click.echo(f"\n  {name} (config refs):")
+            click.echo(f"\n  {name}:")
             for ref in sorted(set(refs)):
-                click.echo(f"    {ref}")
-
-    # Show Keychain secrets
-    if show_keychain or not found:
-        result = subprocess.run(
-            ["security", "dump-keychain"],
-            capture_output=True, text=True,
-        )
-        keychain_items = []
-        for line in result.stdout.splitlines():
-            line = line.strip()
-            if '"svce"' in line and '<blob>=' in line:
-                service = line.split('<blob>=')[1].strip().strip('"')
-                if service:
-                    keychain_items.append(service)
-
-        if keychain_items:
-            found = True
-            click.echo(f"\n  Keychain:")
-            for item in sorted(keychain_items):
-                click.echo(f"    keychain:{item}")
+                if check:
+                    try:
+                        resolver._resolve_one(ref)
+                        status = click.style("OK", fg="green")
+                    except Exception:
+                        status = click.style("MISSING", fg="red")
+                    click.echo(f"    {ref}  [{status}]")
+                else:
+                    click.echo(f"    {ref}")
 
     if not found:
-        click.echo("No secrets found.")
+        if company:
+            click.echo(f"No secrets referenced in {company} config.")
+        else:
+            click.echo("No secrets referenced in any company config.")
+            click.echo("Add secrets with: hat config add-secret <company> <path> <name>")
