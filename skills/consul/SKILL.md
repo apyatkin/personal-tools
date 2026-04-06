@@ -14,7 +14,7 @@ Read `state.json` for `active_company`, then load `config.yaml` for that company
 | `addr`      | Consul API address (e.g. `https://consul.example.com:8500`)  |
 | `token_ref` | Reference to the ACL token in the secrets store              |
 
-`CONSUL_HTTP_ADDR` and `CONSUL_HTTP_TOKEN` are set automatically when you run `ctx use <company>`. You do not need to set these manually.
+`CONSUL_HTTP_ADDR` and `CONSUL_HTTP_TOKEN` are set automatically when you run `hat on <company>`. You do not need to set these manually.
 
 ## Commands
 

@@ -9,11 +9,11 @@ description: Use when working with Ansible — playbooks, inventory, ansible-vau
 
 To get company-specific Ansible settings:
 
-1. Read `~/Library/ctx/state.json` to get `active_company`
-2. Read `~/Library/ctx/companies/<active_company>/config.yaml`
+1. Read `~/Library/hat/state.json` to get `active_company`
+2. Read `~/Library/hat/companies/<active_company>/config.yaml`
 3. Use `ssh` section — reads `keys` for SSH access to managed hosts
 
-SSH keys should already be loaded by `ctx use`.
+SSH keys should already be loaded by `hat on`.
 
 ## Commands
 

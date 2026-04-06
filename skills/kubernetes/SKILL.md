@@ -9,11 +9,11 @@ description: Use when working with Kubernetes — pods, deployments, services, k
 
 To get company-specific Kubernetes settings:
 
-1. Read `~/Library/ctx/state.json` to get `active_company`
-2. Read `~/Library/ctx/companies/<active_company>/config.yaml`
+1. Read `~/Library/hat/state.json` to get `active_company`
+2. Read `~/Library/hat/companies/<active_company>/config.yaml`
 3. Use `cloud.kubernetes` section — reads `kubeconfig`, `refresh.provider`, `refresh.cluster`
 
-The `KUBECONFIG` env var should already be set by `ctx use`. If not, set it from the config.
+The `KUBECONFIG` env var should already be set by `hat on`. If not, set it from the config.
 
 ## Commands
 

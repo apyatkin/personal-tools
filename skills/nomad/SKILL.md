@@ -15,7 +15,7 @@ Read `state.json` for `active_company`, then load `config.yaml` for that company
 | `token_ref` | Reference to the ACL token in secrets store  |
 | `cacert`    | Path to CA certificate for TLS verification  |
 
-`NOMAD_ADDR` and `NOMAD_TOKEN` are set automatically when you run `ctx use <company>`. If TLS is required, `NOMAD_CACERT` is also exported. You do not need to set these manually.
+`NOMAD_ADDR` and `NOMAD_TOKEN` are set automatically when you run `hat on <company>`. If TLS is required, `NOMAD_CACERT` is also exported. You do not need to set these manually.
 
 ## Commands
 

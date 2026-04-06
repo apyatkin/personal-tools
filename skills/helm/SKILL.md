@@ -9,11 +9,11 @@ description: Use when working with Helm — charts, releases, values files, helm
 
 To get company-specific Helm settings:
 
-1. Read `~/Library/ctx/state.json` to get `active_company`
-2. Read `~/Library/ctx/companies/<active_company>/config.yaml`
+1. Read `~/Library/hat/state.json` to get `active_company`
+2. Read `~/Library/hat/companies/<active_company>/config.yaml`
 3. Use `cloud.kubernetes` section — Helm uses the same cluster context as kubectl
 
-The `KUBECONFIG` env var should already be set by `ctx use`.
+The `KUBECONFIG` env var should already be set by `hat on`.
 
 ## Commands
 

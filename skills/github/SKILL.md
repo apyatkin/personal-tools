@@ -9,8 +9,8 @@ description: Use when working with GitHub — PRs, Actions, gh CLI, GitHub API, 
 
 To get company-specific GitHub settings:
 
-1. Read `~/Library/ctx/state.json` to get `active_company`
-2. Read `~/Library/ctx/companies/<active_company>/config.yaml`
+1. Read `~/Library/hat/state.json` to get `active_company`
+2. Read `~/Library/hat/companies/<active_company>/config.yaml`
 3. Find entries in `git.sources` where `provider: github` — use `org`, `token_ref`
 
 If no company is active, ask the user which company context to use.

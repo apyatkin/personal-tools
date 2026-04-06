@@ -15,7 +15,7 @@ Read `state.json` for `active_company`, then load `config.yaml` for that company
 | `username_ref` | Reference to the registry username in secrets store  |
 | `password_ref` | Reference to the registry password in secrets store  |
 
-Registry authentication is configured automatically when you run `ctx use <company>` (credentials are resolved from the secrets store and `docker login` is invoked). You do not need to authenticate manually unless troubleshooting.
+Registry authentication is configured automatically when you run `hat on <company>` (credentials are resolved from the secrets store and `docker login` is invoked). You do not need to authenticate manually unless troubleshooting.
 
 ## Commands
 
@@ -277,7 +277,7 @@ When Docker is consuming too much disk space:
 
 When authenticating to a private registry or troubleshooting auth issues:
 
-1. Resolve registry credentials from the secrets store (via `ctx use <company>` — this should already be done).
+1. Resolve registry credentials from the secrets store (via `hat on <company>` — this should already be done).
 
 2. Log in to the registry:
    ```bash

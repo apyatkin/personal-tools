@@ -15,7 +15,7 @@ Read `state.json` for `active_company`, then load `config.yaml` for that company
 | `auth_method` | Authentication method: `token`, `ldap`, or `oidc`         |
 | `token_ref`   | Reference to the Vault token in the secrets store          |
 
-`VAULT_ADDR` and `VAULT_TOKEN` are set automatically when you run `ctx use <company>`. You do not need to set these manually.
+`VAULT_ADDR` and `VAULT_TOKEN` are set automatically when you run `hat on <company>`. You do not need to set these manually.
 
 ## Commands
 
@@ -167,7 +167,7 @@ When a token is expiring or has been compromised:
    vault token lookup
    ```
 
-5. Update `ctx` or any credential store with the new token if required.
+5. Update `hat` or any credential store with the new token if required.
 
 ### Check Seal Status
 

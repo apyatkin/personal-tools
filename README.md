@@ -1,4 +1,6 @@
-# ctx — Company Context Switcher
+# hat — Put On Your Company Hat
+
+> Version 1.0.0
 
 A CLI tool for switching between multiple company environments. Manages VPN, SSH keys, cloud credentials, env vars, DNS, git identity, docker registries, browser profiles, tool installation, and git repo cloning.
 
@@ -6,32 +8,19 @@ A CLI tool for switching between multiple company environments. Manages VPN, SSH
 
 ```bash
 # Requires Python 3.11+ and uv
-
-# From GitHub
 uv tool install git+https://github.com/apyatkin/personal-tools.git
-
-# Or from local clone (editable — code changes take effect immediately)
-git clone https://github.com/apyatkin/personal-tools.git
-cd personal-tools
-uv tool install -e .
 ```
 
 ## Update
 
 ```bash
-# After pulling new changes or editing code locally
-uv tool install -e /path/to/personal-tools --force
-
-# Or from GitHub (latest)
 uv tool install git+https://github.com/apyatkin/personal-tools.git --force
 ```
-
-With editable install (`-e`), most code changes work immediately. Use `--force` after changing `pyproject.toml` or dependencies.
 
 ## Uninstall
 
 ```bash
-uv tool uninstall ctx-switch
+uv tool uninstall hat
 ```
 
 ## Shell Integration
@@ -39,36 +28,40 @@ uv tool uninstall ctx-switch
 Add to `~/.zshrc`:
 
 ```bash
-eval "$(ctx shell-init zsh)"
+eval "$(hat shell-init zsh)"
 ```
 
-This sources env vars on every prompt and adds a `[company]` indicator to your prompt.
+This sources env vars, aliases, and completions on every prompt and adds a `[company]` indicator.
 
 ## Quick Start
 
 ```bash
 # Create a company config
-ctx init acme
+hat init acme
 
-# Edit the config
-$EDITOR ~/Library/ctx/companies/acme/config.yaml
+# Or configure without editing YAML
+hat config set acme git.identity.name "Your Name"
+hat config set acme git.identity.email "you@acme.com"
+hat config set acme cloud.nomad.addr "https://nomad.acme.com:4646"
+hat config add-ssh acme ~/.ssh/acme_ed25519
+hat config add-secret acme cloud.nomad.token_ref acme-nomad-token
 
-# Switch to that company
-ctx use acme
+# Put on your Acme hat
+hat on acme
 
-# Check what's active
-ctx status
+# What hat am I wearing?
+hat status
 
-# Switch to another company (deactivates previous)
-ctx use globex
+# Switch to another company (takes off previous hat first)
+hat on globex
 
-# Deactivate everything
-ctx off
+# Take off your hat
+hat off
 ```
 
 ## Company Config
 
-Each company lives in `~/Library/ctx/companies/<name>/config.yaml`. All sections are optional — only configure what you need:
+Each company lives in `~/Library/hat/companies/<name>/config.yaml`. All sections are optional — only configure what you need:
 
 ```yaml
 name: acme
@@ -93,11 +86,11 @@ env:
 ssh:
   keys:
     - ~/.ssh/acme_ed25519
-  config: ~/Library/ctx/companies/acme/ssh_config
+  config: ~/Library/hat/companies/acme/ssh_config
 
 vpn:
   provider: wireguard   # wireguard | amnezia | tailscale
-  config: ~/Library/ctx/companies/acme/wg0.conf
+  config: ~/Library/hat/companies/acme/wg0.conf
   interface: wg-acme
 
 dns:
@@ -115,7 +108,7 @@ cloud:
     profile: acme-prod
     sso: true
   kubernetes:
-    kubeconfig: ~/Library/ctx/companies/acme/kubeconfig
+    kubeconfig: ~/Library/hat/companies/acme/kubeconfig
     refresh:
       provider: yandex   # yandex | aws | digitalocean
       cluster: acme-k8s
@@ -165,6 +158,20 @@ apps:
     token_ref: keychain:acme-favro-token
 ```
 
+## Config Without Editing YAML
+
+```bash
+# Set any config value
+hat config set <company> <path> <value>
+
+# Add SSH key
+hat config add-ssh <company> <key-path>
+
+# Store secret in Keychain + add ref to config
+hat config add-secret <company> <config-path> <keychain-name>
+hat config add-secret <company> <config-path> <keychain-name> -f <file>
+```
+
 ## Secrets
 
 Secrets are referenced in config via `*_ref` fields and resolved at activation time from:
@@ -176,13 +183,13 @@ Values are base64-encoded in Keychain to support multiline secrets (SSH keys, ce
 
 ```bash
 # Store a secret (paste multiline, Ctrl-D to finish)
-ctx secret set keychain:acme-gitlab-token
+hat secret set keychain:acme-gitlab-token
 
 # Store from file (SSH keys, certs)
-ctx secret set keychain:acme-sshkey -f ~/.ssh/acme_ed25519
+hat secret set keychain:acme-sshkey -f ~/.ssh/acme_ed25519
 
 # Display a secret
-ctx secret get keychain:acme-gitlab-token
+hat secret get keychain:acme-gitlab-token
 ```
 
 ## Repo Management
@@ -191,61 +198,48 @@ Clone all repos from a company's GitLab groups and GitHub orgs:
 
 ```bash
 # Clone all repos (preserves GitLab subgroup structure)
-ctx repos clone acme
+hat repos clone acme
 
 # Pull updates for all repos
-ctx repos pull acme
+hat repos pull acme
 
 # Pull all companies
-ctx repos pull --all
+hat repos pull --all
 
 # Show what's cloned vs missing
-ctx repos list acme
+hat repos list acme
 ```
 
 Repos are cloned to `~/projects/<company>/repos/`.
 
 ## Tool Management
 
-Tools are defined globally in `~/projects/common/tools.yaml` (not per-company). They're automatically checked on each `ctx use`. Missing tools are installed, outdated tools are upgraded. Update checks are throttled to once per 24 hours.
+Tools are defined globally in `~/projects/common/tools.yaml` (not per-company). They're automatically checked on each `hat on`. Missing tools are installed, outdated tools are upgraded. Update checks are throttled to once per 24 hours.
 
 ```bash
 # Generate default tools.yaml
-ctx tools init
+hat tools init
 
 # Edit to customize
 $EDITOR ~/projects/common/tools.yaml
 
 # Check tools without switching context
-ctx tools check
-```
-
-`tools.yaml` format:
-```yaml
-brew:
-  - kubectl
-  - helm
-  - terraform
-  - nomad
-  - vault
-  - consul
-  - yc
-  - doctl
-  - hcloud
-  - gh
-  - glab
-  - jq
-  - wireguard-tools
-  - docker
-pipx:
-  - ansible
-  - ansible-lint
-  - yamllint
-  - ruff
+hat tools check
 ```
 
 - `brew` tools: installed via Homebrew
 - `pipx` tools: installed via `uv tool` (isolated Python venvs)
+
+## Shell Aliases & Completions
+
+Generate global aliases and completions for all DevOps tools:
+
+```bash
+hat aliases generate       # ~/projects/common/aliases.sh
+hat completions generate   # ~/projects/common/completions.sh
+```
+
+These are sourced automatically by `hat shell-init zsh`. Includes aliases like `k` for kubectl, `tf` for tofu, `dc` for docker compose, and completions for all tools.
 
 ## Claude Code Skills
 
@@ -253,17 +247,16 @@ pipx:
 
 ```bash
 # Set skills source in global config
-echo "skills_source: $(pwd)/skills" > ~/Library/ctx/config.yaml
+mkdir -p ~/Library/hat
+echo "skills_source: /path/to/personal-tools/skills" > ~/Library/hat/config.yaml
 
 # Deploy skills as symlinks
-ctx skills deploy
+hat skills deploy
 ```
 
-This creates `~/projects/.claude/skills/` with symlinks to each skill. Skills cover: GitLab, GitHub, Favro, Jira, Kubernetes, Helm, Terraform, Ansible, Nomad, Vault, Consul, Docker.
+Skills cover: GitLab, GitHub, Favro, Jira, Kubernetes, Helm, Terraform, Ansible, Nomad, Vault, Consul, Docker.
 
-Each skill reads the active company's `ctx` config for connection details.
-
-## What Happens on `ctx use`
+## What Happens on `hat on`
 
 Modules activate in this order (deactivate in reverse):
 
@@ -280,44 +273,37 @@ Modules activate in this order (deactivate in reverse):
 11. **browser** — open browser with company profile
 12. **apps** — open Slack, etc.
 
-State is tracked in `~/Library/ctx/state.json` so `ctx off` and `ctx status` work across shell restarts.
-
-## Shell Aliases & Completions
-
-Generate global aliases and completions for all DevOps tools:
-
-```bash
-ctx aliases generate       # ~/projects/common/aliases.sh
-ctx completions generate   # ~/projects/common/completions.sh
-```
-
-These are sourced automatically by `ctx shell-init zsh`. Includes aliases like `k` for kubectl, `tf` for tofu, `dc` for docker compose, and completions for all tools.
+State is tracked in `~/Library/hat/state.json` so `hat off` and `hat status` work across shell restarts.
 
 ## All Commands
 
 ```
-ctx use <company>              switch context (hard switch)
-ctx off                        deactivate current context
-ctx status                     show active company and modules
-ctx list                       list configured companies
-ctx init <company>             scaffold new company config
+hat on <company>                          put on a company hat
+hat off                                   take off your hat
+hat status                                what hat am I wearing?
+hat list                                  list all hats
+hat init <company>                        scaffold new company config
 
-ctx repos clone <company>      clone all repos from git sources
-ctx repos pull <company>       pull updates for company repos
-ctx repos pull --all           pull all companies
-ctx repos list <company>       list local vs remote repos
+hat config set <company> <path> <value>   set a config value
+hat config add-ssh <company> <key-path>   add SSH key to config
+hat config add-secret <company> <path> <name>  store secret + add ref
 
-ctx secret set <ref>           store a secret (multiline paste, Ctrl-D)
-ctx secret set <ref> -f <file>  store from file
-ctx secret get <ref>           display a secret
+hat repos clone <company>                 clone all repos
+hat repos pull <company>                  pull updates
+hat repos pull --all                      pull all companies
+hat repos list <company>                  list local vs remote
 
-ctx tools init                 generate ~/projects/common/tools.yaml
-ctx tools check                check/install tools
+hat secret set <ref>                      store a secret
+hat secret set <ref> -f <file>            store from file
+hat secret get <ref>                      display a secret
 
-ctx aliases generate           generate ~/projects/common/aliases.sh
-ctx completions generate       generate ~/projects/common/completions.sh
+hat tools init                            generate tools.yaml
+hat tools check                           check/install tools
 
-ctx skills deploy              deploy Claude Code skills
+hat aliases generate                      generate aliases.sh
+hat completions generate                  generate completions.sh
 
-ctx shell-init zsh             output shell integration code
+hat skills deploy                         deploy Claude Code skills
+
+hat shell-init zsh                        output shell integration code
 ```

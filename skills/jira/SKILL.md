@@ -9,8 +9,8 @@ description: Use when working with Jira — issues, sprints, boards, jira CLI, o
 
 To get company-specific Jira settings:
 
-1. Read `~/Library/ctx/state.json` to get `active_company`
-2. Read `~/Library/ctx/companies/<active_company>/config.yaml`
+1. Read `~/Library/hat/state.json` to get `active_company`
+2. Read `~/Library/hat/companies/<active_company>/config.yaml`
 3. Use `apps.jira` section — reads `host`, `project`, `email`, `token_ref`
 
 If no company is active, ask the user which company context to use.
