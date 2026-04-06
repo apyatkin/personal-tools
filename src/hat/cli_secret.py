@@ -24,14 +24,45 @@ def _complete_ref(ctx, param, incomplete):
 
 @click.group("secret")
 def secret_group():
-    """Manage secrets."""
+    """Manage secrets stored in macOS Keychain or Bitwarden.
+
+    Secrets are referenced in company configs via *_ref fields
+    (e.g. token_ref: keychain:acme-token). This command manages
+    those secrets.
+
+    \b
+    Backends:
+      keychain:<name>                  macOS Keychain
+      bitwarden:<item>                 Bitwarden (password field)
+      bitwarden:<item>/password        Bitwarden password
+      bitwarden:<item>/notes           Bitwarden notes
+      bitwarden:<item>/field/<name>    Bitwarden custom field
+    """
 
 
 @secret_group.command("set")
 @click.argument("ref", shell_complete=_complete_ref)
 @click.option("--file", "-f", "file_path", type=click.Path(exists=True), help="Read value from file")
 def secret_set(ref: str, file_path: str | None):
-    """Store a secret. Use -f for multiline values (SSH keys, certs)."""
+    """Store a secret in macOS Keychain.
+
+    \b
+    REF format: keychain:<name>
+
+    \b
+    Three ways to provide the value:
+      hat secret set keychain:token              paste value, then Ctrl-D
+      hat secret set keychain:sshkey -f key.pem  read from file
+      echo "val" | hat secret set keychain:tok   pipe from stdin
+
+    \b
+    Examples:
+      hat secret set keychain:acme-gitlab-token
+      hat secret set keychain:acme-sshkey -f ~/.ssh/acme_ed25519
+      hat secret set keychain:acme-vault-token
+
+    Bitwarden secrets must be stored via the bw CLI or web vault.
+    """
     from hat.secrets import parse_secret_ref
     import base64
     import subprocess
@@ -59,7 +90,13 @@ def secret_set(ref: str, file_path: str | None):
 @secret_group.command("get")
 @click.argument("ref", shell_complete=_complete_ref)
 def secret_get(ref: str):
-    """Display a secret value."""
+    """Display a secret value.
+
+    \b
+    Examples:
+      hat secret get keychain:acme-gitlab-token
+      hat secret get bitwarden:acme-vault/password
+    """
     from hat.secrets import SecretResolver
     from hat.activity_log import log_event
     resolver = SecretResolver()
@@ -71,12 +108,22 @@ def secret_get(ref: str):
 @secret_group.command("list")
 @click.option("--company", default=None, help="Filter by company")
 def secret_list(company: str | None):
-    """List all secret refs across company configs."""
+    """List all secrets referenced in company configs.
+
+    Shows every *_ref field found in company configs, grouped by company.
+    Use --company to filter to a single company.
+
+    \b
+    Examples:
+      hat secret list                  all companies
+      hat secret list --company acme   just acme
+    """
     from hat.config import list_companies, load_company_config
     from hat.secrets import SecretResolver
 
     companies = [company] if company else list_companies()
     resolver = SecretResolver()
+    found = False
 
     for name in companies:
         try:
@@ -85,9 +132,13 @@ def secret_list(company: str | None):
             continue
         refs = resolver._find_refs(config)
         if refs:
+            found = True
             click.echo(f"\n  {name}:")
-            for ref in sorted(refs):
+            for ref in sorted(set(refs)):
                 click.echo(f"    {ref}")
 
-    if not companies:
-        click.echo("No companies configured.")
+    if not found:
+        if company:
+            click.echo(f"No secrets found for {company}.")
+        else:
+            click.echo("No secrets found. Configure companies first: hat init <name>")
