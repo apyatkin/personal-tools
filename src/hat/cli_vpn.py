@@ -132,7 +132,9 @@ def vpn_up(company: str, yes: bool):
     if not yes:
         click.confirm(f"Will run: {' '.join(cmd)}\nProceed?", default=True, abort=True)
     try:
-        subprocess.run(cmd, check=True)
+        import os
+        env = {**os.environ, "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}"}
+        subprocess.run(cmd, check=True, env=env)
     except subprocess.CalledProcessError as e:
         click.echo(click.style(f"VPN connect failed (exit {e.returncode})", fg="red"))
         return
@@ -173,7 +175,9 @@ def vpn_down(company: str):
         return
 
     try:
-        subprocess.run(cmd, check=True)
+        import os
+        env = {**os.environ, "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}"}
+        subprocess.run(cmd, check=True, env=env)
     except subprocess.CalledProcessError as e:
         click.echo(click.style(f"VPN disconnect failed (exit {e.returncode})", fg="red"))
         return

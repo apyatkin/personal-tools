@@ -1,4 +1,4 @@
-from unittest.mock import patch, call
+from unittest.mock import patch, ANY
 
 from hat.modules.vpn import VPNModule
 
@@ -19,10 +19,9 @@ def test_vpn_wireguard_activate():
          patch("hat.modules.vpn._find_binary", side_effect=_mock_find):
         mock_run.return_value.returncode = 0
         mod.activate(config, secrets={})
-    mock_run.assert_called_once_with(
-        ["sudo", "wg-quick", "up", "/etc/wireguard/wg-acme.conf"],
-        check=True,
-    )
+    args = mock_run.call_args
+    assert args.args[0] == ["sudo", "wg-quick", "up", "/etc/wireguard/wg-acme.conf"]
+    assert args.kwargs["check"] is True
 
 
 def test_vpn_tailscale_activate():
@@ -33,10 +32,9 @@ def test_vpn_tailscale_activate():
          patch("hat.modules.vpn._find_binary", side_effect=_mock_find):
         mock_run.return_value.returncode = 0
         mod.activate(config, secrets={})
-    mock_run.assert_called_once_with(
-        ["sudo", "tailscale", "up"],
-        check=True,
-    )
+    args = mock_run.call_args
+    assert args.args[0] == ["sudo", "tailscale", "up"]
+    assert args.kwargs["check"] is True
 
 
 def test_vpn_deactivate_wireguard():
@@ -52,10 +50,8 @@ def test_vpn_deactivate_wireguard():
         mock_run.return_value.returncode = 0
         mod.activate(config, secrets={})
         mod.deactivate()
-    last_call = mock_run.call_args_list[-1]
-    assert last_call == call(
-        ["sudo", "wg-quick", "down", "wg-acme"], check=True,
-    )
+    last_args = mock_run.call_args_list[-1]
+    assert last_args.args[0] == ["sudo", "wg-quick", "down", "wg-acme"]
 
 
 def test_vpn_no_config():

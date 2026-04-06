@@ -49,7 +49,8 @@ class VPNModule(Module):
         click.confirm(
             f"Will run: {' '.join(cmd)}\nProceed?", default=True, abort=True
         )
-        subprocess.run(cmd, check=True)
+        env = {**os.environ, "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}"}
+        subprocess.run(cmd, check=True, env=env)
 
     def deactivate(self) -> None:
         if not self._provider:
@@ -65,7 +66,8 @@ class VPNModule(Module):
         else:
             return
 
-        subprocess.run(cmd, check=True)
+        env = {**os.environ, "PATH": f"/opt/homebrew/bin:/usr/local/bin:{os.environ.get('PATH', '')}"}
+        subprocess.run(cmd, check=True, env=env)
         self._provider = None
         self._config_path = None
         self._interface = None
