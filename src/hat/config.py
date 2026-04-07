@@ -98,19 +98,30 @@ def save_company_config(name: str, config: dict[str, Any]) -> None:
 
 
 def set_nested(config: dict, path: str, value: Any) -> None:
-    """Set a value at a dotted path. Use [+] to append to a list."""
+    """Set a value at a dotted path. Use [+] to append to a list. Numeric parts index into lists."""
     parts = path.split(".")
     obj = config
     for part in parts[:-1]:
-        if part not in obj:
-            obj[part] = {}
-        obj = obj[part]
+        if part.isdigit():
+            idx = int(part)
+            while len(obj) <= idx:
+                obj.append({})
+            obj = obj[idx]
+        elif isinstance(obj, dict):
+            if part not in obj:
+                obj[part] = {}
+            obj = obj[part]
     last = parts[-1]
     if last.endswith("[+]"):
         key = last[:-3]
         if key not in obj:
             obj[key] = []
         obj[key].append(value)
+    elif last.isdigit():
+        idx = int(last)
+        while len(obj) <= idx:
+            obj.append({})
+        obj[idx] = value
     else:
         obj[last] = value
 

@@ -125,6 +125,47 @@ def config_add_secret(
     click.echo(f"{company}: {config_path} = keychain:{keychain_name}")
 
 
+@config_group.command("add-git-source")
+@click.argument("company")
+@click.argument("provider", type=click.Choice(["gitlab", "github"]))
+@click.argument("host_or_org")
+@click.option("--group", default=None, help="GitLab group (defaults to host_or_org)")
+@click.option("--token", "token_name", default=None, help="Keychain name for token")
+def config_add_git_source(
+    company: str,
+    provider: str,
+    host_or_org: str,
+    group: str | None,
+    token_name: str | None,
+):
+    """Add a git source (GitLab or GitHub) to company config.
+
+    \b
+    Examples:
+      hat config add-git-source 3205 gitlab gitlab.3205.team --group infra --token 3205-gitlab-token
+      hat config add-git-source acme github acme-org --token acme-github-pat
+    """
+    config = load_company_config(company)
+    if "git" not in config:
+        config["git"] = {}
+    if "sources" not in config["git"]:
+        config["git"]["sources"] = []
+
+    source: dict = {"provider": provider}
+    if provider == "gitlab":
+        source["host"] = host_or_org
+        source["group"] = group or host_or_org
+    elif provider == "github":
+        source["org"] = host_or_org
+
+    if token_name:
+        source["token_ref"] = f"keychain:{token_name}"
+
+    config["git"]["sources"].append(source)
+    save_company_config(company, config)
+    click.echo(f"{company}: added {provider} source ({host_or_org})")
+
+
 @config_group.command("validate")
 @click.argument("company")
 def config_validate(company: str):
