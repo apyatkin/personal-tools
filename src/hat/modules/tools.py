@@ -14,8 +14,9 @@ THROTTLE_SECONDS = 86400
 
 # Packages where the binary name differs from the package name
 BREW_BIN_MAP = {
+    "awscli": "aws",
     "wireguard-tools": "wg",
-    "bash": "bash",  # already exists but brew installs newer version
+    "bash": "bash",
 }
 
 PIPX_BIN_MAP = {

@@ -10,6 +10,7 @@ COMMON_DIR = PROJECTS_DIR / "common"
 
 DEFAULT_TOOLS = {
     "brew": [
+        "awscli",
         "bash",
         "kubectl",
         "helm",
