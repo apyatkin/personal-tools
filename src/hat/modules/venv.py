@@ -142,7 +142,21 @@ class VenvModule(Module):
 
         venv_path = self._resolve_path(config, company)
         python_bin = config.get("python", "python3")
-        packages = config.get("packages") or DEFAULT_PACKAGES
+
+        raw_packages = config.get("packages")
+        if raw_packages is None:
+            packages = list(DEFAULT_PACKAGES)
+        elif isinstance(raw_packages, str):
+            raise RuntimeError(
+                f"venv.packages must be a list, got string: {raw_packages!r}. "
+                "Use YAML list syntax, e.g. `packages: [ansible]` or one item per line."
+            )
+        elif not isinstance(raw_packages, list):
+            raise RuntimeError(
+                f"venv.packages must be a list of strings, got {type(raw_packages).__name__}"
+            )
+        else:
+            packages = [str(p) for p in raw_packages if p]
 
         try:
             self._ensure_venv(venv_path, python_bin)

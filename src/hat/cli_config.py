@@ -16,11 +16,25 @@ def config_group():
 @click.argument("path")
 @click.argument("value")
 def config_set(company: str, path: str, value: str):
-    """Set a config value. Use dotted paths (e.g. cloud.nomad.addr)."""
+    """Set a config value. Use dotted paths (e.g. cloud.nomad.addr).
+
+    \b
+    The value is parsed as YAML, so lists, booleans, and numbers work:
+      hat config set acme venv.packages '[ansible, ansible-lint]'
+      hat config set acme venv.enabled true
+      hat config set acme some.port 8080
+      hat config set acme some.name "plain string"
+    """
+    import yaml
+
     config = load_company_config(company)
-    set_nested(config, path, value)
+    try:
+        parsed = yaml.safe_load(value)
+    except yaml.YAMLError:
+        parsed = value
+    set_nested(config, path, parsed)
     save_company_config(company, config)
-    click.echo(f"{company}: {path} = {value}")
+    click.echo(f"{company}: {path} = {parsed!r}")
 
 
 @config_group.command("add-ssh")
