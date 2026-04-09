@@ -24,11 +24,13 @@ import click
 # ─── Common helpers ────────────────────────────────────────────────────────
 
 
-def _run_local(cmd: list[str], env: dict | None = None) -> tuple[int, str, str]:
+def _run_local(
+    cmd: list[str], env: dict | None = None, timeout: int = 120
+) -> tuple[int, str, str]:
     """Run a local command. Returns (returncode, stdout, stderr)."""
     try:
         r = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=60, env=env, check=False
+            cmd, capture_output=True, text=True, timeout=timeout, env=env, check=False
         )
         return r.returncode, r.stdout, r.stderr
     except FileNotFoundError:
@@ -737,8 +739,9 @@ def nomad_cmd(address, token, region, level, json_out):
     except ValueError:
         pass
 
-    # Jobs
-    rc, jobs_raw = nomad(["job", "status", "-json"], accept_fail=True)
+    # Jobs — use HTTP API directly (faster than `nomad job status -json`
+    # which fetches full job detail for every job).
+    rc, jobs_raw = nomad(["operator", "api", "/v1/jobs"], accept_fail=True)
     jobs = []
     try:
         jobs = _json.loads(jobs_raw) if jobs_raw else []
