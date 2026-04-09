@@ -6,14 +6,26 @@ A CLI tool for switching between multiple company environments. Manages VPN, SSH
 
 ## Install
 
+### One-liner (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/apyatkin/hatctl/main/install.sh | bash
+```
+
+For unattended/CI use, add `-s -- --silent`.
+
+### Homebrew
+
+```bash
+brew install apyatkin/tap/hatctl
+```
+
+### uv (PyPI)
+
 Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
 ```bash
-# From PyPI
 uv tool install hatctl
-
-# Or from GitHub
-uv tool install git+https://github.com/apyatkin/personal-tools.git
 ```
 
 This installs `hat` to `~/.local/bin/`. Make sure it's in your PATH:
