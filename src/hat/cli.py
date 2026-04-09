@@ -265,9 +265,33 @@ def list_cmd(tag: str | None):
 
 @main.command()
 @click.argument("company", shell_complete=_complete_company)
-def init(company: str):
-    """Scaffold a new company config."""
+@click.option(
+    "--from",
+    "from_company",
+    default=None,
+    shell_complete=_complete_company,
+    help="Clone config from an existing company instead of scaffolding from scratch",
+)
+def init(company: str, from_company: str | None):
+    """Scaffold a new company config.
+
+    \b
+    Two modes:
+      hat init acme                 # scaffold from blank template
+      hat init acme --from foo      # clone existing 'foo' config, clear secrets
+    """
     validate_company_name(company)
+
+    # Clone mode: delegate to config.clone_company_config (also used by the
+    # deprecated `hat template` command).
+    if from_company:
+        from hat.config import clone_company_config
+
+        path = clone_company_config(from_company, company)
+        click.echo(f"Created {path} (based on {from_company})")
+        click.echo("Secrets have been cleared — add them with 'hat config add-secret'.")
+        return
+
     config_dir = get_config_dir() / "companies" / company
     config_file = config_dir / "config.yaml"
     if config_file.exists():
@@ -283,7 +307,7 @@ def init(company: str):
     projects_dir.mkdir(parents=True, exist_ok=True)
     (projects_dir / "repos").mkdir(exist_ok=True)
 
-    template = {
+    scaffold = {
         "name": company,
         "description": "",
         "git": {
@@ -306,7 +330,7 @@ def init(company: str):
         "apps": {},
     }
     config_file.write_text(
-        yaml.dump(template, default_flow_style=False, sort_keys=False)
+        yaml.dump(scaffold, default_flow_style=False, sort_keys=False)
     )
     click.echo(f"Created {config_file}")
     click.echo(f"Created {projects_dir}/")
@@ -479,18 +503,19 @@ def import_cmd(archive: str, name: str | None):
     click.echo(f"Add secrets: hat secret list --company {company}")
 
 
-@main.command()
+@main.command(hidden=True)
 @click.argument("company", shell_complete=_complete_company)
 @click.option(
     "--from", "from_company", required=True, help="Source company to copy from"
 )
-def template(company: str, from_company: str):
-    """Create a new company config based on an existing one."""
-    from hat.config import clone_company_config
-
-    path = clone_company_config(from_company, company)
-    click.echo(f"Created {path} (based on {from_company})")
-    click.echo("Secrets have been cleared — add them with 'hat config add-secret'.")
+@click.pass_context
+def template(ctx, company: str, from_company: str):
+    """DEPRECATED — use `hat init <name> --from <existing>` instead."""
+    click.echo(
+        "Note: 'hat template' is deprecated; use 'hat init <name> --from <existing>' instead.",
+        err=True,
+    )
+    ctx.invoke(init, company=company, from_company=from_company)
 
 
 @main.group()
@@ -593,16 +618,16 @@ def tunnel_stop():
         click.echo(f"  pid {r['pid']}: {r['status']}")
 
 
-@main.command("completion")
+@main.command("completion", hidden=True)
 @click.argument("shell", default="zsh")
 def completion_cmd(shell: str):
-    """Output shell completion code."""
+    """DEPRECATED — use `hat completions output <shell>` instead."""
     if shell == "zsh":
         click.echo('eval "$(_HAT_COMPLETE=zsh_source hat)"')
     elif shell == "bash":
         click.echo('eval "$(_HAT_COMPLETE=bash_source hat)"')
     else:
-        click.echo(f"Unsupported shell: {shell}")
+        click.echo(f"Unsupported shell: {shell}", err=True)
 
 
 @main.command()

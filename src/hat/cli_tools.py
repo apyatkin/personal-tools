@@ -183,7 +183,7 @@ def aliases_generate():
 
 @click.group()
 def completions():
-    """Manage shell completions."""
+    """Manage shell completions — generate, output."""
 
 
 @completions.command("generate")
@@ -193,6 +193,21 @@ def completions_generate():
 
     path = generate_completions()
     click.echo(f"Generated {path}")
+
+
+@completions.command("output")
+@click.argument("shell", default="zsh", type=click.Choice(["zsh", "bash"]))
+def completions_output(shell: str):
+    """Output the eval-able completion snippet for the given shell.
+
+    \b
+    Example:
+      eval "$(hat completions output zsh)"
+    """
+    if shell == "zsh":
+        click.echo('eval "$(_HAT_COMPLETE=zsh_source hat)"')
+    else:
+        click.echo('eval "$(_HAT_COMPLETE=bash_source hat)"')
 
 
 @click.group()
