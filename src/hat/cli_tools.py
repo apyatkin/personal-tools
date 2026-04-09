@@ -3,22 +3,22 @@ from __future__ import annotations
 import click
 
 
-@click.group("tools")
-def tools_group():
-    """Manage tools — list, add, remove, install.
+@click.group("package")
+def package_group():
+    """Manage packages — list, add, remove, install (brew / pipx / npm).
 
     \b
-    Tools are installed via three package managers:
+    Packages are installed via three package managers:
       brew     Homebrew (native CLI tools)
       pipx     uv tool (Python tools in isolated venvs)
       npm      npm (Node.js tools)
 
     \b
-    Tool list stored in ~/projects/common/tools.yaml
+    Package list stored in ~/projects/common/tools.yaml
     """
 
 
-@tools_group.command("list")
+@package_group.command("list")
 def tools_list():
     """List all configured tools and their install status."""
     import shutil
@@ -54,7 +54,7 @@ def tools_list():
             click.echo(f"    {tool:30s} [{status}]")
 
 
-@tools_group.command("add")
+@package_group.command("add")
 @click.argument("method", type=click.Choice(["brew", "pipx", "npm"]))
 @click.argument("package")
 def tools_add(method: str, package: str):
@@ -88,7 +88,7 @@ def tools_add(method: str, package: str):
     click.echo("Run 'hat tools install' to install it.")
 
 
-@tools_group.command("remove")
+@package_group.command("remove")
 @click.argument("method", type=click.Choice(["brew", "pipx", "npm"]))
 @click.argument("package")
 def tools_remove(method: str, package: str):
@@ -113,7 +113,7 @@ def tools_remove(method: str, package: str):
     click.echo(f"Removed {package} from {method} list.")
 
 
-@tools_group.command("install")
+@package_group.command("install")
 def tools_install():
     """Install/update all tools from ~/projects/common/tools.yaml."""
     from hat.common import load_common_tools
@@ -128,7 +128,7 @@ def tools_install():
     mod.activate(tools_config, secrets={})
 
 
-@tools_group.command("check")
+@package_group.command("check")
 def tools_check():
     """Check which tools are installed vs missing."""
     import shutil
@@ -157,7 +157,7 @@ def tools_check():
         click.echo("  Run 'hat tools install' to install missing tools.")
 
 
-@tools_group.command("init")
+@package_group.command("init")
 def tools_init():
     """Generate ~/projects/common/tools.yaml with default tools."""
     from hat.common import generate_tools_config

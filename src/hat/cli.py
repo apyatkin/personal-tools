@@ -80,7 +80,24 @@ def _complete_company(ctx, param, incomplete):
     return [c for c in list_companies() if c.startswith(incomplete)]
 
 
-@click.group(invoke_without_command=True)
+class _AliasedGroup(click.Group):
+    """Click group that supports hidden command aliases."""
+
+    _aliases: dict[str, str] = {
+        "tools": "package",  # backward-compat: `hat tools ...` -> `hat package ...`
+    }
+
+    def get_command(self, ctx, cmd_name):
+        rv = super().get_command(ctx, cmd_name)
+        if rv is not None:
+            return rv
+        target = self._aliases.get(cmd_name)
+        if target:
+            return super().get_command(ctx, target)
+        return None
+
+
+@click.group(cls=_AliasedGroup, invoke_without_command=True)
 @click.version_option(package_name="hatctl")
 @click.pass_context
 def main(ctx):
@@ -804,20 +821,22 @@ HELP_TOPICS = {
     hat secret scan
 
   Backends: keychain:<name>, bitwarden:<item>[/password|/notes|/field/<name>]""",
-    "tools": """Tool Management
+    "package": """Package Management
 
   Setup:
-    hat tools init             generate ~/projects/common/tools.yaml
-    hat tools list             show all with install status
-    hat tools install          install/update everything
+    hat package init             generate ~/projects/common/tools.yaml
+    hat package list             show all with install status
+    hat package install          install/update everything
 
   Manage:
-    hat tools add brew kubectl
-    hat tools add pipx ansible
-    hat tools add npm @bitwarden/cli
-    hat tools remove brew k9s
+    hat package add brew kubectl
+    hat package add pipx ansible
+    hat package add npm @bitwarden/cli
+    hat package remove brew k9s
 
-  Package managers: brew, pipx (uv tool), npm""",
+  Package managers: brew, pipx (uv tool), npm
+
+  Note: `hat tools …` still works as a hidden alias for backward compat.""",
     "net": """Network Tools
 
     hat net domain example.com     WHOIS + RDAP (expiry, registrar)
@@ -883,7 +902,7 @@ def telemetry_cmd(action: str):
 from hat.cli_repos import repos
 from hat.cli_secret import secret_group
 from hat.cli_config import config_group
-from hat.cli_tools import tools_group, aliases, completions, skills
+from hat.cli_tools import package_group, aliases, completions, skills
 from hat.cli_net import net_group
 from hat.cli_ssh import ssh_group
 from hat.cli_vpn import vpn_group
@@ -893,7 +912,7 @@ from hat.cli_whatsup import whatsup_group
 main.add_command(repos)
 main.add_command(secret_group)
 main.add_command(config_group)
-main.add_command(tools_group)
+main.add_command(package_group)
 main.add_command(aliases)
 main.add_command(completions)
 main.add_command(skills)

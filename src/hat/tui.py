@@ -125,7 +125,7 @@ def _show_ssh_hosts():
 def _show_tools():
     import subprocess
 
-    subprocess.run(["hat", "tools", "list"])
+    subprocess.run(["hat", "package", "list"])
 
 
 def _switch_company(company: str):
