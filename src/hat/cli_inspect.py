@@ -698,18 +698,79 @@ echo '===TOPMEM==='; ps -eo pid,user,pcpu,pmem,rss,comm --sort=-rss --no-headers
     help="Filter by systemd unit (e.g. 'sshd', 'nginx')",
 )
 @click.option(
-    "--since", default=None, help="systemd time spec, e.g. '1 hour ago', 'today'"
+    "--last",
+    "last",
+    default=None,
+    help="Time window — e.g. '1h', '30m', '2d', '1w'",
+)
+@click.option(
+    "--since",
+    default=None,
+    help="Raw systemd time spec, e.g. '1 hour ago', 'today', '2026-04-09 10:00'",
 )
 @click.option(
     "-l",
     "--level",
     type=click.Choice(["emerg", "alert", "crit", "err", "warning", "notice", "info"]),
     default=None,
-    help="Min priority",
+    help="Min priority (includes this level and above)",
 )
-def logs_cmd(remote, user, port, private_key, json_out, lines, service, since, level):
-    """Recent system logs (journalctl, fallback to /var/log/syslog)."""
+@click.option("--errors", "errors_only", is_flag=True, help="Shortcut for --level err")
+@click.option(
+    "--warnings",
+    "warnings_only",
+    is_flag=True,
+    help="Shortcut for --level warning (warnings + errors)",
+)
+def logs_cmd(
+    remote,
+    user,
+    port,
+    private_key,
+    json_out,
+    lines,
+    service,
+    last,
+    since,
+    level,
+    errors_only,
+    warnings_only,
+):
+    """Recent system logs (journalctl, fallback to /var/log/syslog).
+
+    \b
+    Examples:
+      hat inspect logs -r web1                       # last 50 lines
+      hat inspect logs -r web1 -n 200                # last 200 lines
+      hat inspect logs -r web1 --errors              # errors only
+      hat inspect logs -r web1 --warnings            # warnings + errors
+      hat inspect logs -r web1 --last 1h             # last hour
+      hat inspect logs -r web1 --last 30m --errors   # last 30 min errors
+      hat inspect logs -r web1 -s sshd --last 1d     # sshd unit, last day
+    """
     target = _resolve_target(remote, user, port, private_key)
+
+    # Resolve level shortcuts
+    if errors_only and warnings_only:
+        click.echo("Error: --errors and --warnings are mutually exclusive", err=True)
+        sys.exit(2)
+    if errors_only:
+        level = "err"
+    elif warnings_only:
+        level = "warning"
+
+    # Resolve --last shortcut to a systemd --since spec
+    if last and since:
+        click.echo("Error: --last and --since are mutually exclusive", err=True)
+        sys.exit(2)
+    if last:
+        since = _parse_last_spec(last)
+        if since is None:
+            click.echo(
+                f"Error: invalid --last value '{last}' (expected e.g. '30m', '1h', '2d', '1w')",
+                err=True,
+            )
+            sys.exit(2)
 
     parts = ["journalctl", "--no-pager", "-o", "short-iso", "-n", str(lines)]
     if service:
@@ -738,8 +799,29 @@ def logs_cmd(remote, user, port, private_key, json_out, lines, service, since, l
     if service:
         title += f" — unit: {service}"
     if level:
-        title += f" — level: {level}"
+        title += f" — level: {level}+"
+    if since:
+        title += f" — since: {since}"
     _render_table(title, ["Timestamp", "Host", "Unit", "Message"], rows, json_out)
+
+
+def _parse_last_spec(spec: str) -> str | None:
+    """Parse '1h', '30m', '2d', '1w' into a journalctl --since spec."""
+    import re
+
+    m = re.fullmatch(r"(\d+)\s*([smhdw])", spec.strip().lower())
+    if not m:
+        return None
+    n, unit = int(m.group(1)), m.group(2)
+    names = {
+        "s": "second",
+        "m": "minute",
+        "h": "hour",
+        "d": "day",
+        "w": "week",
+    }
+    plural = "" if n == 1 else "s"
+    return f"{n} {names[unit]}{plural} ago"
 
 
 # ─── helpers ───────────────────────────────────────────────────────────────
