@@ -24,6 +24,28 @@ import click
 # ─── Common helpers ────────────────────────────────────────────────────────
 
 
+def _load_active_company_env(*keys: str) -> dict[str, str]:
+    """Return selected env vars from the currently-active hat company.
+
+    Returns an empty dict if no company is active or the lookup fails.
+    Used as a fallback so cluster commands work without a prior
+    `hat on <company>` in the same shell.
+    """
+    try:
+        from hat.state import StateManager
+        from hat.env_builder import build_company_env
+    except Exception:
+        return {}
+    try:
+        sm = StateManager()
+        if not sm.active_company:
+            return {}
+        full = build_company_env(sm.active_company)
+    except Exception:
+        return {}
+    return {k: full[k] for k in keys if k in full}
+
+
 def _run_local(
     cmd: list[str], env: dict | None = None, timeout: int = 120
 ) -> tuple[int, str, str]:
@@ -641,9 +663,13 @@ def k8s_cmd(kubeconfig, k8s_context, namespace, level, json_out):
 @click.option(
     "--address",
     default=None,
-    help="Nomad HTTP address (defaults to $NOMAD_ADDR)",
+    help="Nomad HTTP address (defaults to $NOMAD_ADDR, or active company config)",
 )
-@click.option("--token", default=None, help="ACL token (defaults to $NOMAD_TOKEN)")
+@click.option(
+    "--token",
+    default=None,
+    help="ACL token (defaults to $NOMAD_TOKEN, or active company keychain secret)",
+)
 @click.option(
     "--region",
     default=None,
@@ -655,12 +681,23 @@ def nomad_cmd(address, token, region, level, json_out):
 
     \b
     Examples:
-      hat whatsup nomad
+      hat whatsup nomad                        # uses active company's NOMAD_ADDR/TOKEN
       hat whatsup nomad --address http://deploy.nomad-sf.sf-serv.ac:4646
       hat whatsup nomad --errors
       hat whatsup nomad --deep
     """
     env = os.environ.copy()
+
+    # If neither cli flags nor env vars are set, try loading from the
+    # currently-active hat company so `hat whatsup nomad` works even
+    # when the user hasn't run `hat on <company>` in the current shell.
+    if not address and not env.get("NOMAD_ADDR"):
+        loaded = _load_active_company_env("NOMAD_ADDR", "NOMAD_TOKEN")
+        if loaded.get("NOMAD_ADDR"):
+            env["NOMAD_ADDR"] = loaded["NOMAD_ADDR"]
+        if loaded.get("NOMAD_TOKEN") and not token and not env.get("NOMAD_TOKEN"):
+            env["NOMAD_TOKEN"] = loaded["NOMAD_TOKEN"]
+
     if address:
         env["NOMAD_ADDR"] = address
     if token:
@@ -755,6 +792,7 @@ def nomad_cmd(address, token, region, level, json_out):
         "other": 0,
     }
     problem_jobs = []
+    historically_noisy = []  # jobs running now but with many past failures
     job_rows = []
     for j in jobs:
         name = j.get("Name") or j.get("ID", "?")
@@ -765,12 +803,32 @@ def nomad_cmd(address, token, region, level, json_out):
         failed = sum(g.get("Failed", 0) for g in summary.values())
         queued = sum(g.get("Queued", 0) for g in summary.values())
         lost = sum(g.get("Lost", 0) for g in summary.values())
+
         job_rows.append(
             [name, jtype, status, str(running), str(queued), str(failed), str(lost)]
         )
         job_counts[status if status in ("running", "pending", "dead") else "other"] += 1
-        if failed > 0 or lost > 0 or (status == "pending" and queued > 0):
+
+        # Problem criteria (current state, not cumulative counters):
+        #   - service/system job not running when it should be
+        #   - anything with queued tasks (can't be placed)
+        #   - job explicitly dead (batch ignored — dead is normal for finished batch)
+        is_problem = False
+        if jtype in ("service", "system") and status != "running":
+            is_problem = True
+        elif status == "pending" and queued > 0:
+            is_problem = True
+        elif jtype in ("service", "system") and running == 0 and queued == 0:
+            # Expected to be running but nothing is
+            is_problem = True
+
+        if is_problem:
             problem_jobs.append(
+                [name, jtype, status, str(running), str(queued), str(failed), str(lost)]
+            )
+        elif failed >= 100 or lost >= 100:
+            # For --deep: jobs with high historical failure/lost counters
+            historically_noisy.append(
                 [name, jtype, status, str(running), str(queued), str(failed), str(lost)]
             )
 
@@ -998,6 +1056,20 @@ def nomad_cmd(address, token, region, level, json_out):
             f"Failed/lost allocations ({len(alloc_rows)})",
             ["ID", "Job", "Group", "Status", "Desired", "Node"],
             alloc_rows,
+        )
+
+    if historically_noisy and level != "errors":
+        # Show top 20 noisiest (by total Failed + Lost)
+        top_noisy = sorted(
+            historically_noisy,
+            key=lambda r: int(r[5]) + int(r[6]),
+            reverse=True,
+        )[:20]
+        _render_table(
+            f"Noisy jobs — running but with ≥100 historical failures/lost "
+            f"({len(historically_noisy)} total, top 20)",
+            ["Name", "Type", "Status", "Run", "Queue", "Fail", "Lost"],
+            top_noisy,
         )
 
     if level == "deep":
