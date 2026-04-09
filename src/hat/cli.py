@@ -81,12 +81,15 @@ def _complete_company(ctx, param, incomplete):
 
 
 class _AliasedGroup(click.Group):
-    """Click group that supports hidden command aliases.
+    """Click group that supports hidden aliases + grouped --help output.
 
     `_aliases` maps a removed top-level command name to a dotted path in the
     real command tree. e.g. 'aliases' -> 'shell.aliases' resolves the legacy
     'hat aliases ...' invocation to 'hat shell aliases ...' without showing
     it in --help.
+
+    `_command_groups` organises --help into labelled sections instead of
+    one flat alphabetical list.
     """
 
     _aliases: dict[str, str] = {
@@ -96,6 +99,38 @@ class _AliasedGroup(click.Group):
         "completions": "shell.completions",  # same for completions
     }
 
+    # Order matters — groups render in this sequence.
+    _command_groups: list[tuple[str, list[str]]] = [
+        (
+            "Context",
+            ["on", "off", "status", "list", "init", "diff"],
+        ),
+        (
+            "Execute",
+            ["run", "env", "shell"],
+        ),
+        (
+            "Per-company configuration",
+            ["config", "secret", "ssh", "vpn", "repos", "kubeconfig", "tunnel"],
+        ),
+        (
+            "Inspect & diagnose",
+            ["doctor", "inspect", "whatsup", "net"],
+        ),
+        (
+            "Packages & extensions",
+            ["package", "sync", "plugin", "skills"],
+        ),
+        (
+            "Backup & share",
+            ["backup", "restore", "export", "import"],
+        ),
+        (
+            "Meta",
+            ["setup", "help", "telemetry", "log", "tui"],
+        ),
+    ]
+
     def get_command(self, ctx, cmd_name):
         rv = super().get_command(ctx, cmd_name)
         if rv is not None:
@@ -103,7 +138,6 @@ class _AliasedGroup(click.Group):
         target = self._aliases.get(cmd_name)
         if target is None:
             return None
-        # Walk dotted path to resolve nested aliases.
         parts = target.split(".")
         cmd = super().get_command(ctx, parts[0])
         for part in parts[1:]:
@@ -111,6 +145,36 @@ class _AliasedGroup(click.Group):
                 return None
             cmd = cmd.get_command(ctx, part)
         return cmd
+
+    def format_commands(self, ctx, formatter):
+        # Collect visible commands
+        visible: dict[str, click.Command] = {}
+        for name in self.list_commands(ctx):
+            cmd = self.get_command(ctx, name)
+            if cmd is None or cmd.hidden:
+                continue
+            visible[name] = cmd
+
+        assigned: set[str] = set()
+        for title, names in self._command_groups:
+            rows = []
+            for n in names:
+                if n in visible:
+                    short = visible[n].get_short_help_str(limit=60)
+                    rows.append((n, short))
+                    assigned.add(n)
+            if rows:
+                with formatter.section(title):
+                    formatter.write_dl(rows)
+
+        # Orphan commands not in any group — show under "Other".
+        orphans = [n for n in visible if n not in assigned]
+        if orphans:
+            rows = [
+                (n, visible[n].get_short_help_str(limit=60)) for n in sorted(orphans)
+            ]
+            with formatter.section("Other"):
+                formatter.write_dl(rows)
 
 
 @click.group(cls=_AliasedGroup, invoke_without_command=True)
