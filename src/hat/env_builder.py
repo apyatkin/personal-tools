@@ -95,6 +95,18 @@ def build_company_env(company: str) -> dict[str, str]:
     # Custom env vars
     env_vars.update(config.get("env", {}))
 
+    # Venv — only export VIRTUAL_ENV if the venv actually exists.
+    # build_company_env is a pure/no-side-effect helper so we don't
+    # create the venv here; that happens during `hat on <company>`.
+    venv_cfg = config.get("venv") or {}
+    if venv_cfg and venv_cfg.get("enabled", True) is not False:
+        venv_path = venv_cfg.get("path") or (
+            Path.home() / "projects" / config.get("name", company) / "venv"
+        )
+        venv_path = Path(str(venv_path)).expanduser()
+        if (venv_path / "bin" / "python").exists():
+            env_vars["VIRTUAL_ENV"] = str(venv_path)
+
     # Proxy
     proxy = config.get("proxy", {})
     if "http" in proxy:

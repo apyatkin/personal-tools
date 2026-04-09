@@ -30,6 +30,25 @@ _hat_precmd() {
   else
     unset HAT_ACTIVE
   fi
+  _hat_manage_venv
+}
+
+# Activate / deactivate the company venv based on VIRTUAL_ENV and HAT_ACTIVE.
+# Saves the original PATH on first activation and restores it on deactivation,
+# so sourcing state.env repeatedly is idempotent.
+_hat_manage_venv() {
+  if [[ -n "$HAT_ACTIVE" && -n "$VIRTUAL_ENV" && -x "$VIRTUAL_ENV/bin/python" ]]; then
+    if [[ -z "$_HAT_ORIG_PATH" ]]; then
+      export _HAT_ORIG_PATH="$PATH"
+    fi
+    case ":$PATH:" in
+      *":$VIRTUAL_ENV/bin:"*) ;;
+      *) export PATH="$VIRTUAL_ENV/bin:$PATH" ;;
+    esac
+  elif [[ -z "$HAT_ACTIVE" && -n "$_HAT_ORIG_PATH" ]]; then
+    export PATH="$_HAT_ORIG_PATH"
+    unset _HAT_ORIG_PATH VIRTUAL_ENV
+  fi
 }
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd _hat_precmd
@@ -60,6 +79,21 @@ def _bash_init() -> str:
 [[ -f ~/projects/common/aliases.sh ]] && source ~/projects/common/aliases.sh
 [[ -f ~/projects/common/completions.sh ]] && source ~/projects/common/completions.sh
 
+_hat_manage_venv() {{
+  if [[ -n "$HAT_ACTIVE" && -n "$VIRTUAL_ENV" && -x "$VIRTUAL_ENV/bin/python" ]]; then
+    if [[ -z "$_HAT_ORIG_PATH" ]]; then
+      export _HAT_ORIG_PATH="$PATH"
+    fi
+    case ":$PATH:" in
+      *":$VIRTUAL_ENV/bin:"*) ;;
+      *) export PATH="$VIRTUAL_ENV/bin:$PATH" ;;
+    esac
+  elif [[ -z "$HAT_ACTIVE" && -n "$_HAT_ORIG_PATH" ]]; then
+    export PATH="$_HAT_ORIG_PATH"
+    unset _HAT_ORIG_PATH VIRTUAL_ENV
+  fi
+}}
+
 _hat_prompt() {{
   local env_file="{config_dir}/state.env"
   if [[ -f "$env_file" ]]; then
@@ -71,6 +105,7 @@ _hat_prompt() {{
   else
     unset HAT_ACTIVE
   fi
+  _hat_manage_venv
 }}
 PROMPT_COMMAND="_hat_prompt;$PROMPT_COMMAND"
 

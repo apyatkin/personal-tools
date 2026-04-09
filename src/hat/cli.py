@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 import click
 import yaml
 
@@ -11,6 +13,7 @@ from hat.config import (
 )
 from hat.modules import Orchestrator
 from hat.modules.tools import ToolsModule
+from hat.modules.venv import VenvModule
 from hat.modules.vpn import VPNModule
 from hat.modules.dns import DNSModule
 from hat.modules.hosts import HostsModule
@@ -30,6 +33,7 @@ from hat.state import StateManager
 def _build_orchestrator() -> Orchestrator:
     builtin = [
         ToolsModule(),
+        VenvModule(),
         VPNModule(),
         DNSModule(),
         HostsModule(),
@@ -56,6 +60,7 @@ def _build_orchestrator() -> Orchestrator:
 MODULE_NAMES = frozenset(
     {
         "tools",
+        "venv",
         "vpn",
         "dns",
         "hosts",
@@ -153,6 +158,8 @@ def on_cmd(company: str, check_tools: bool, no_vpn: bool):
 
     # Activate
     click.echo(f"Activating {company}...")
+    # VenvModule needs to know the company name to default its path.
+    os.environ["HAT_ACTIVATING_COMPANY"] = company
     try:
         orch = _build_orchestrator()
         activated = orch.activate(
@@ -164,6 +171,8 @@ def on_cmd(company: str, check_tools: bool, no_vpn: bool):
     except RuntimeError as e:
         click.echo(click.style(f"Activation failed: {e}", fg="red"))
         return
+    finally:
+        os.environ.pop("HAT_ACTIVATING_COMPANY", None)
 
     sm.set_active(company, activated)
     sm.save()
@@ -282,6 +291,10 @@ def init(company: str):
             "sources": [],
         },
         "env": {},
+        "venv": {
+            "enabled": True,
+            "packages": ["ansible"],
+        },
         "ssh": {"keys": []},
         "vpn": {},
         "dns": {},
