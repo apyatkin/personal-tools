@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hatctl"
-version = "2.2.0"
+version = "2.3.0"
 description = "Put on your company hat — switch between company environments"
 requires-python = ">=3.11"
 license = "MIT"
