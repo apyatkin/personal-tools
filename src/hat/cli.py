@@ -850,6 +850,7 @@ from hat.cli_net import net_group
 from hat.cli_ssh import ssh_group
 from hat.cli_vpn import vpn_group
 from hat.cli_inspect import inspect_group
+from hat.cli_whatsup import whatsup_group
 
 main.add_command(repos)
 main.add_command(secret_group)
@@ -862,6 +863,7 @@ main.add_command(net_group)
 main.add_command(ssh_group)
 main.add_command(vpn_group)
 main.add_command(inspect_group)
+main.add_command(whatsup_group)
 
 
 def entrypoint():
